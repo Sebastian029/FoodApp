@@ -1,0 +1,18 @@
+# Use the Node image to build the app
+FROM node:18
+
+# Set the working directory
+WORKDIR /frontend
+
+# Copy the frontend directory contents into the container
+COPY frontend/package.json /frontend/  
+COPY frontend/ /frontend/                                   
+
+# Install dependencies
+RUN npm install
+
+# Expose a port for the app
+EXPOSE 8081
+
+# Start Metro Bundler
+CMD ["npm", "start"]
