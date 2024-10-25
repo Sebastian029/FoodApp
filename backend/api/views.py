@@ -102,21 +102,25 @@ class UserIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserIngredientsSerializer
 
 
-# api/views.py
-import csv
-from datetime import datetime
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Recipe
-from .serializers import RecipeSerializer
+
+
+
+
+
+
+
+
+
+
 
 import csv
-from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from api.models import Recipe,Ingredient, RecipeIngredients  # Adjust import based on your actual model structure
+
+
+
 
 @api_view(['GET'])
 def upload_recipes_csv(request):
@@ -166,3 +170,12 @@ def upload_recipes_csv(request):
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+from .utils import select_meals
+
+@api_view(['GET'])
+def meal_selection_view(request):
+    selected_meals = select_meals()
+    serializer = RecipeSerializer(selected_meals, many=True)
+    return Response({"selected_meals": serializer.data})
+

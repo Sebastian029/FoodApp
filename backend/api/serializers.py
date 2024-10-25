@@ -56,4 +56,3 @@ class UserIngredientsSerializer(serializers.ModelSerializer):
         model = UserIngredients
         fields = '__all__'
 
-

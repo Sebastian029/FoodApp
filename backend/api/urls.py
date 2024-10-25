@@ -9,7 +9,7 @@ from .views import (
     UserIngredientsListCreateView, UserIngredientsDetailView
 )
 
-from .views import upload_recipes_csv
+from .views import upload_recipes_csv, meal_selection_view
 
 
 urlpatterns = [
@@ -42,6 +42,7 @@ urlpatterns = [
 
     path('user-ingredients/', UserIngredientsListCreateView.as_view(), name='useringredients-list'),
     path('user-ingredients/<int:pk>/', UserIngredientsDetailView.as_view(), name='useringredients-detail'),
+    
     path('upload-recipes/', upload_recipes_csv, name='upload-recipes'),
-
+    path('plan_meals/', meal_selection_view, name='select_meals')
 ]
