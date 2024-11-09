@@ -38,8 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     'rest_framework',
+    'rest_framework_simplejwt',
     
-    'api'
+    'api',
+  
 ]
 
 MIDDLEWARE = [
@@ -128,3 +130,27 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',  
+    ),
+}
+
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Short-lived access tokens
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Long-lived refresh tokens
+    'ROTATE_REFRESH_TOKENS': True,                    # Whether to rotate refresh tokens
+    'BLACKLIST_AFTER_ROTATION': True,                 # Blacklist old refresh tokens after rotation
+    'ALGORITHM': 'HS256',                             # JWT signing algorithm (HS256 is standard)
+    'SIGNING_KEY': SECRET_KEY,                        # Use your Django SECRET_KEY to sign the tokens
+}
+
+AUTH_USER_MODEL = "api.User"

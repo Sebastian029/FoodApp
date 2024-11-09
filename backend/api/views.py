@@ -1,5 +1,14 @@
 # api/views.py
 from rest_framework import generics
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .serializers import RegisterSerializer
 from .models import User, Recipe, Ingredient, RecipeIngredients, DayPlan, DayPlanRecipes, RatedRecipes, UserWeight, DislikedIngredients, UserIngredients
 from .serializers import (
     UserSerializer, RecipeSerializer, IngredientSerializer, 
@@ -7,15 +16,40 @@ from .serializers import (
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
     UserIngredientsSerializer
 )
+from .utils import select_meals, upload_recipes_from_csv
 
-# from .utils import 
 
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
+
+
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        return Response({"message": "You have access to this view."})
+    
 # User Views
 class UserListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAdminUser]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -113,69 +147,26 @@ class UserIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-import csv
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from api.models import Recipe,Ingredient, RecipeIngredients  # Adjust import based on your actual model structure
+
 
 
 
 
 @api_view(['GET'])
 def upload_recipes_csv(request):
-    # Path to your CSV file
+    # Path to your CSV file (ensure it's correct)
     file_path = 'data.csv'  # Directly reference the CSV in the root directory
 
-    # Read the CSV file
-    try:
-        with open(file_path, newline='', encoding='utf-8') as csvfile:
-            # Specify the delimiter as ';'
-            reader = csv.DictReader(csvfile, delimiter=';')
+    # Call the utility function to upload recipes
+    success, message = upload_recipes_from_csv(file_path)
 
-            for row in reader:
-              
-
-                # Create and save the Recipe instance
-                recipe_data = {
-                    'title': row['name'],
-                    'description': row['short_description'],
-                    'total_calories': row['total_calories'],
-                    'sugars': row['sugars'],
-                    'protein': row['protein'],
-                    'iron': row['iron'],
-                    'potassium': row['potassium'],
-                    'potassium': row['potassium'],
-                    'preparation_time': row['preparation_time'],
-                    'preparation_guide': row['preparation_guide'],
-                    'meal_type': row['meal_type'],
-                    
-                    
-                }
-
-                # Create the recipe object
-                recipe = Recipe.objects.create(**recipe_data)
-
-                # Handle ingredients if they exist
-                if 'ingredients' in row:
-                    ingredients = [ingredient.strip() for ingredient in row['ingredients'].split(',')]  # Assuming this column contains comma-separated ingredients
-                    for ingredient_name in ingredients:
-                        # Check if ingredient exists or create it
-                        ingredient_obj, created = Ingredient.objects.get_or_create(name=ingredient_name)
-
-                        # Create a relationship in the recipe_ingredients table
-                        RecipeIngredients.objects.get_or_create(recipe_id=recipe.id, ingredient_id=ingredient_obj.id)
-
-        return Response({'message': 'Recipes uploaded successfully!'}, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-from .utils import select_meals
+    if success:
+        return Response({'message': message}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def meal_selection_view(request):
     selected_meals = select_meals()
     serializer = RecipeSerializer(selected_meals, many=True)
     return Response({"selected_meals": serializer.data})
-

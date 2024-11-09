@@ -2,6 +2,10 @@ import pandas as pd
 from pulp import LpProblem, LpVariable, lpSum, LpMaximize, LpMinimize
 from .models import Recipe
 
+import csv
+from django.conf import settings
+from api.models import Recipe, Ingredient, RecipeIngredients
+
 def select_meals(optimize_field='protein', objective='maximize'):
     # Query relevant data from the Recipe model and convert to a DataFrame
     recipes = Recipe.objects.all().values('id', 'title', 'total_calories', 'sugars', 'protein', 'iron', 'potassium', 'meal_type')
@@ -75,3 +79,43 @@ def select_meals(optimize_field='protein', objective='maximize'):
     print(f"Total Potassium: {total_potassium:.2f}")
 
     return selected_meals
+
+
+
+def upload_recipes_from_csv(file_path):
+    try:
+        with open(file_path, newline='', encoding='utf-8') as csvfile:
+            # Specify the delimiter as ';'
+            reader = csv.DictReader(csvfile, delimiter=';')
+
+            for row in reader:
+                # Prepare data for Recipe creation
+                recipe_data = {
+                    'title': row['name'],
+                    'description': row['short_description'],
+                    'total_calories': row['total_calories'],
+                    'sugars': row['sugars'],
+                    'protein': row['protein'],
+                    'iron': row['iron'],
+                    'potassium': row['potassium'],
+                    'preparation_time': row['preparation_time'],
+                    'preparation_guide': row['preparation_guide'],
+                    'meal_type': row['meal_type'],
+                }
+
+                # Create the Recipe object
+                recipe = Recipe.objects.create(**recipe_data)
+
+                # Handle ingredients if they exist
+                if 'ingredients' in row:
+                    ingredients = [ingredient.strip() for ingredient in row['ingredients'].split(',')]  # Assuming this column contains comma-separated ingredients
+                    for ingredient_name in ingredients:
+                        # Check if ingredient exists or create it
+                        ingredient_obj, created = Ingredient.objects.get_or_create(name=ingredient_name)
+
+                        # Create a relationship in the recipe_ingredients table
+                        RecipeIngredients.objects.get_or_create(recipe_id=recipe.id, ingredient_id=ingredient_obj.id)
+
+        return True, 'Recipes uploaded successfully!'
+    except Exception as e:
+        return False, str(e)

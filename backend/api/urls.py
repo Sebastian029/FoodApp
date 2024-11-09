@@ -10,9 +10,18 @@ from .views import (
 )
 
 from .views import upload_recipes_csv, meal_selection_view
-
+from .views import RegisterView, CustomTokenObtainPairView
+from .views import ProtectedView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
+    
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', CustomTokenObtainPairView.as_view(), name='login'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('protected/', ProtectedView.as_view(), name='protected_view'),
+
+    
     path('users/', UserListCreateView.as_view(), name='user-list'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
     
