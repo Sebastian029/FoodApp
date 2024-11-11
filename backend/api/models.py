@@ -32,6 +32,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} {self.surname}"
 
+class UserNutrientPreferences(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    min_calories = models.IntegerField(null=True, blank=True)
+    max_calories = models.IntegerField(null=True, blank=True)
+    min_sugars = models.IntegerField(null=True, blank=True)
+    max_sugars = models.IntegerField(null=True, blank=True)
+    min_protein = models.IntegerField(null=True, blank=True)
+    max_protein = models.IntegerField(null=True, blank=True)
+    min_iron = models.IntegerField(null=True, blank=True)
+    max_iron = models.IntegerField(null=True, blank=True)
+    min_potassium = models.IntegerField(null=True, blank=True)
+    max_potassium = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Nutrients for {self.user}"
+
+
+
+
 
 class Recipe(models.Model):
     title = models.CharField(max_length=255)

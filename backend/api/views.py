@@ -9,12 +9,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .serializers import RegisterSerializer
-from .models import User, Recipe, Ingredient, RecipeIngredients, DayPlan, DayPlanRecipes, RatedRecipes, UserWeight, DislikedIngredients, UserIngredients
+from .models import (User, Recipe, Ingredient, RecipeIngredients,
+                     DayPlan, DayPlanRecipes, RatedRecipes, UserWeight,
+                     DislikedIngredients, UserIngredients, UserNutrientPreferences
+)
 from .serializers import (
     UserSerializer, RecipeSerializer, IngredientSerializer, 
     RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
-    UserIngredientsSerializer
+    UserIngredientsSerializer, UserNutrientPreferencesSerializer
 )
 from .utils import select_meals, upload_recipes_from_csv
 
@@ -41,8 +44,7 @@ class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         return Response({"message": "You have access to this view."})
-    
-# User Views
+
 class UserListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAdminUser]
     queryset = User.objects.all()
@@ -52,6 +54,66 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminUser]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    
+    
+class UserNutrientPreferencesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            preferences = UserNutrientPreferences.objects.get(user=request.user)
+            serializer = UserNutrientPreferencesSerializer(preferences, data=request.data, partial=True)
+        except UserNutrientPreferences.DoesNotExist:
+            serializer = UserNutrientPreferencesSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+    def get(self, request):
+        try:
+            preferences = UserNutrientPreferences.objects.get(user=request.user)
+            serializer = UserNutrientPreferencesSerializer(preferences)
+            return Response(serializer.data)
+        except UserNutrientPreferences.DoesNotExist:
+            return Response({"detail": "Preferences not set."}, status=status.HTTP_404_NOT_FOUND)
+
+# Ingredient Views
+class IngredientListCreateView(generics.ListCreateAPIView):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    
+    
+    
+class UserDislikedIngredientsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        disliked_ingredients = DislikedIngredients.objects.filter(user=user)
+        ingredients = [item.ingredient for item in disliked_ingredients]
+        serializer = IngredientSerializer(ingredients, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = DislikedIngredientsSerializer(data=request.data)
+        if serializer.is_valid():
+            ingredient_ids = serializer.validated_data['ingredient_ids']
+            user = request.user
+
+            # Clear any existing disliked ingredients for this user
+            DislikedIngredients.objects.filter(user=user).delete()
+
+            # Add new disliked ingredients
+            disliked_ingredients = [
+                DislikedIngredients(user=user, ingredient=Ingredient.objects.get(id=ingredient_id))
+                for ingredient_id in ingredient_ids
+            ]
+            DislikedIngredients.objects.bulk_create(disliked_ingredients)
+
+            return Response({"message": "Disliked ingredients saved successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Recipe Views
 class RecipeListCreateView(generics.ListCreateAPIView):
@@ -63,14 +125,7 @@ class RecipeDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RecipeSerializer
 
 
-# Ingredient Views
-class IngredientListCreateView(generics.ListCreateAPIView):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
 
-class IngredientDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
 
 # RecipeIngredients Views
 class RecipeIngredientsListCreateView(generics.ListCreateAPIView):
@@ -117,14 +172,7 @@ class UserWeightDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = UserWeight.objects.all()
     serializer_class = UserWeightSerializer
 
-# DislikedIngredients Views
-class DislikedIngredientsListCreateView(generics.ListCreateAPIView):
-    queryset = DislikedIngredients.objects.all()
-    serializer_class = DislikedIngredientsSerializer
 
-class DislikedIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = DislikedIngredients.objects.all()
-    serializer_class = DislikedIngredientsSerializer
 
 # UserIngredients Views
 class UserIngredientsListCreateView(generics.ListCreateAPIView):

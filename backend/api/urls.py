@@ -2,34 +2,37 @@
 from django.urls import path
 from .views import (
     UserListCreateView, UserDetailView, RecipeListCreateView, RecipeDetailView, 
-    IngredientListCreateView, IngredientDetailView, RecipeIngredientsListCreateView, 
+    IngredientListCreateView, RecipeIngredientsListCreateView, 
     RecipeIngredientsDetailView, DayPlanListCreateView, DayPlanDetailView, DayPlanRecipesListCreateView, 
     DayPlanRecipesDetailView, RatedRecipesListCreateView, RatedRecipesDetailView, UserWeightListCreateView, 
-    UserWeightDetailView, DislikedIngredientsListCreateView, DislikedIngredientsDetailView, 
-    UserIngredientsListCreateView, UserIngredientsDetailView
+    UserWeightDetailView,
+    UserIngredientsListCreateView, UserIngredientsDetailView, UserNutrientPreferencesView,
+    UserDislikedIngredientsView
 )
 
 from .views import upload_recipes_csv, meal_selection_view
 from .views import RegisterView, CustomTokenObtainPairView
 from .views import ProtectedView
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 
 urlpatterns = [
-    
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', CustomTokenObtainPairView.as_view(), name='login'),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('protected/', ProtectedView.as_view(), name='protected_view'),
-
-    
     path('users/', UserListCreateView.as_view(), name='user-list'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
     
+    path('preferences/', UserNutrientPreferencesView.as_view(), name='user-nutrient-preferences'),
+    path('ingredients/', IngredientListCreateView.as_view(), name='ingredient-list'),
+    path('disliked-ingredients/', UserDislikedIngredientsView.as_view(), name='user-disliked-ingredients'),
+
+    
+    
     path('recipes/', RecipeListCreateView.as_view(), name='recipe-list'),
     path('recipes/<int:pk>/', RecipeDetailView.as_view(), name='recipe-detail'),
-
-    path('ingredients/', IngredientListCreateView.as_view(), name='ingredient-list'),
-    path('ingredients/<int:pk>/', IngredientDetailView.as_view(), name='ingredient-detail'),
 
     path('recipe-ingredients/', RecipeIngredientsListCreateView.as_view(), name='recipeingredients-list'),
     path('recipe-ingredients/<int:pk>/', RecipeIngredientsDetailView.as_view(), name='recipeingredients-detail'),
@@ -46,8 +49,7 @@ urlpatterns = [
     path('user-weight/', UserWeightListCreateView.as_view(), name='userweight-list'),
     path('user-weight/<int:pk>/', UserWeightDetailView.as_view(), name='userweight-detail'),
 
-    path('disliked-ingredients/', DislikedIngredientsListCreateView.as_view(), name='dislikedingredients-list'),
-    path('disliked-ingredients/<int:pk>/', DislikedIngredientsDetailView.as_view(), name='dislikedingredients-detail'),
+
 
     path('user-ingredients/', UserIngredientsListCreateView.as_view(), name='useringredients-list'),
     path('user-ingredients/<int:pk>/', UserIngredientsDetailView.as_view(), name='useringredients-detail'),
