@@ -50,7 +50,11 @@ class UserNutrientPreferences(models.Model):
 
 
 
+class Ingredient(models.Model):
+    name = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.name
 
 class Recipe(models.Model):
     title = models.CharField(max_length=255)
@@ -63,16 +67,11 @@ class Recipe(models.Model):
     preparation_time = models.IntegerField()
     preparation_guide = models.TextField()
     meal_type = models.CharField(max_length=255)
+    ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredients')
+
 
     def __str__(self):
         return self.title
-
-
-class Ingredient(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
 
 class RecipeIngredients(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)

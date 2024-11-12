@@ -215,6 +215,14 @@ def upload_recipes_csv(request):
 
 @api_view(['GET'])
 def meal_selection_view(request):
-    selected_meals = select_meals()
+    # Get the user from the request (assuming the user is authenticated)
+    user = request.user
+    
+    # Pass the user to the select_meals function
+    selected_meals = select_meals(user=user)  # Pass user as an argument to select_meals
+    
+    # Serialize the selected meals
     serializer = RecipeSerializer(selected_meals, many=True)
+    
+    # Return the selected meals as a response
     return Response({"selected_meals": serializer.data})
