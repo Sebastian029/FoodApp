@@ -90,21 +90,43 @@ class DislikedIngredientsSerializer(serializers.Serializer):
         if invalid_ids:
             raise ValidationError(f"Invalid ingredient id(s): {', '.join(map(str, invalid_ids))}")
         return value
-
-class RecipeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Recipe
-        fields = '__all__'
-
+    
+    
+    
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = '__all__'
+        fields = '_all__'
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
+    ingredient = IngredientSerializer()  # Serialize the Ingredient model
+
     class Meta:
         model = RecipeIngredients
-        fields = '__all__'
+        fields = ['ingredient', 'quantity', 'unit']
+        
+class RecipeSerializer(serializers.ModelSerializer):
+    ingredients = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recipe
+        fields = ['id', 'title', 'description', 'total_calories', 'sugars', 'protein', 
+                  'iron', 'potassium', 'preparation_time', 'preparation_guide', 
+                  'meal_type', 'ingredients']
+
+    def get_ingredients(self, obj):
+        recipe_ingredients = obj.recipeingredients_set.all()
+        ingredient_data = []
+        
+        for ri in recipe_ingredients:
+            ingredient_data.append({
+                'ingredient_name': ri.ingredient.name,
+                'quantity': ri.quantity,
+                'unit': ri.unit
+            })
+        
+        return ingredient_data
+
 
 class DayPlanSerializer(serializers.ModelSerializer):
     class Meta:

@@ -125,7 +125,29 @@ class RecipeDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RecipeSerializer
 
 
-
+class RecipeListView(APIView):
+    def get(self, request):
+        recipes = Recipe.objects.all()
+        serializer = RecipeSerializer(recipes, many=True)
+        return Response(serializer.data)
+    
+class RecipeTypeView(APIView):
+    def get(self, request):
+        # Get the 'meal_type' parameter from the query parameters (if provided)
+        meal_type = request.query_params.get('meal_type', None)
+        
+        # If 'meal_type' is provided, filter the recipes by that type
+        if meal_type:
+            recipes = Recipe.objects.filter(meal_type=meal_type)
+        else:
+            # If no 'meal_type' is provided, return all recipes
+            recipes = Recipe.objects.all()
+        
+        # Serialize the filtered (or all) recipes
+        serializer = RecipeSerializer(recipes, many=True)
+        
+        # Return the response
+        return Response(serializer.data)
 
 # RecipeIngredients Views
 class RecipeIngredientsListCreateView(generics.ListCreateAPIView):
@@ -203,8 +225,7 @@ class UserIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 def upload_recipes_csv(request):
     # Path to your CSV file (ensure it's correct)
-    file_path = 'data.csv'  # Directly reference the CSV in the root directory
-
+    file_path = 'updated_data.csv'  # Directly reference the CSV in the root directory
     # Call the utility function to upload recipes
     success, message = upload_recipes_from_csv(file_path)
 

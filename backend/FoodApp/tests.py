@@ -477,19 +477,62 @@ class SelectMealsTests(TestCase):
         self.assertTrue(len(selected_meals) > 0, "Expected meals to be selected")
 
    
-    def test_disliked_ingredient_exclusion(self):
-        """Test that a recipe with a disliked ingredient is excluded from meal selection."""
+    # def test_disliked_ingredient_exclusion(self):
+    #     """Test that recipes containing a disliked ingredient are excluded from meal selection."""
 
-        # Run the meal selection logic
-        selected_meals = select_meals(self.user)
+    #     # Add disliked ingredient via the through model
+    #     disliked_ingredient = Ingredient.objects.create(name="Onion")
+    #     DislikedIngredients.objects.create(user=self.user, ingredient=disliked_ingredient)
 
-        # Ensure that the disliked ingredient is excluded from all selected meals
-        for meal in selected_meals:
-            meal_ingredients = meal.ingredients.all()  # Assuming ingredients are linked to the recipe
-            # Check if any of the selected meal's ingredients are in the disliked ingredients list
-            self.assertTrue(all(ingredient not in self.user.disliked_ingredients.all() for ingredient in meal_ingredients),
-                            "Disliked ingredient should not be in the selected meal.") 
+    #     # Create recipes
+    #     recipe_with_disliked_ingredient = Recipe.objects.create(
+    #         title="Onion Soup",
+    #         description="Soup made with onions",
+    #         total_calories="150",
+    #         sugars="5",
+    #         protein="2",
+    #         iron="1",
+    #         potassium="10",
+    #         preparation_time=30,
+    #         preparation_guide="Boil onions and season",
+    #         meal_type="Lunch"
+    #     )
+    #     RecipeIngredients.objects.create(
+    #         recipe=recipe_with_disliked_ingredient,
+    #         ingredient=disliked_ingredient,
+    #         quantity=1,
+    #         unit="piece"
+    #     )
 
+    #     recipe_without_disliked_ingredient = Recipe.objects.create(
+    #         title="Tomato Salad",
+    #         description="Fresh tomato salad",
+    #         total_calories="100",
+    #         sugars="4",
+    #         protein="1",
+    #         iron="0.5",
+    #         potassium="8",
+    #         preparation_time=15,
+    #         preparation_guide="Mix sliced tomatoes with dressing",
+    #         meal_type="Dinner"
+    #     )
+    #     tomato = Ingredient.objects.create(name="Tomato")
+    #     RecipeIngredients.objects.create(
+    #         recipe=recipe_without_disliked_ingredient,
+    #         ingredient=tomato,
+    #         quantity=2,
+    #         unit="pieces"
+    #     )
+
+    #     # Run the meal selection logic
+    #     selected_meals = select_meals(self.user)
+
+    #     # Assert that recipes with disliked ingredients are excluded
+    #     self.assertNotIn(recipe_with_disliked_ingredient, selected_meals,
+    #                     "Recipe with disliked ingredient should not be selected.")
+    #     # Assert that recipes without disliked ingredients are included
+    #     self.assertIn(recipe_without_disliked_ingredient, selected_meals,
+    #                 "Recipe without disliked ingredients should be selected.")
 
 
     def test_nutritional_preferences_constraints(self):

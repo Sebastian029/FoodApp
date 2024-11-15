@@ -3,6 +3,8 @@ from pulp import LpProblem, LpVariable, lpSum, LpMaximize, LpMinimize, PULP_CBC_
 from django.conf import settings
 from api.models import Recipe, Ingredient, RecipeIngredients, DislikedIngredients, UserNutrientPreferences
 from django.contrib.auth import get_user_model
+import csv
+from django.db import transaction
 
 
 
@@ -92,36 +94,58 @@ def select_meals(user, optimize_field='protein', objective='maximize'):
 def upload_recipes_from_csv(file_path):
     try:
         with open(file_path, newline='', encoding='utf-8') as csvfile:
-            # Specify the delimiter as ';'
             reader = csv.DictReader(csvfile, delimiter=';')
 
-            for row in reader:
-                # Prepare data for Recipe creation
-                recipe_data = {
-                    'title': row['name'],
-                    'description': row['short_description'],
-                    'total_calories': row['total_calories'],
-                    'sugars': row['sugars'],
-                    'protein': row['protein'],
-                    'iron': row['iron'],
-                    'potassium': row['potassium'],
-                    'preparation_time': row['preparation_time'],
-                    'preparation_guide': row['preparation_guide'],
-                    'meal_type': row['meal_type'],
-                }
+            # Use a transaction to ensure atomicity
+            with transaction.atomic():
+                for row in reader:
+                    # Prepare data for Recipe creation
+                    recipe_data = {
+                        'title': row['name'],
+                        'description': row['short_description'],
+                        'total_calories': row['total_calories'],
+                        'sugars': row['sugars'],
+                        'protein': row['protein'],
+                        'iron': row['iron'],
+                        'potassium': row['potassium'],
+                        'preparation_time': int(row['preparation_time']),
+                        'preparation_guide': row['preparation_guide'],
+                        'meal_type': row['meal_type'],
+                    }
 
-                # Create the Recipe object
-                recipe = Recipe.objects.create(**recipe_data)
+                    # Create the Recipe object
+                    recipe = Recipe.objects.create(**recipe_data)
 
-                # Handle ingredients if they exist
-                if 'ingredients' in row:
-                    ingredients = [ingredient.strip() for ingredient in row['ingredients'].split(',')]  # Assuming this column contains comma-separated ingredients
-                    for ingredient_name in ingredients:
-                        # Check if ingredient exists or create it
-                        ingredient_obj, created = Ingredient.objects.get_or_create(name=ingredient_name)
+                    # Handle ingredients if they exist
+                    if 'ingredients' in row:
+                        # Assuming 'ingredients' column has data like: "Flour:2 cups, Sugar:1 cup"
+                        ingredients = row['ingredients'].split(',')
+                        for ingredient_entry in ingredients:
+                            # Split ingredient name, quantity, and unit
+                            try:
+                                name, quantity_unit = ingredient_entry.split(':', 1)
+                                quantity, unit = quantity_unit.strip().split(' ', 1)
+                            except ValueError:
+                                # If format is invalid, use default values
+                                name = ingredient_entry.strip()
+                                quantity = 0.0  # Default quantity
+                                unit = ""       # Default unit
 
-                        # Create a relationship in the recipe_ingredients table
-                        RecipeIngredients.objects.get_or_create(recipe_id=recipe.id, ingredient_id=ingredient_obj.id)
+                            # Trim and validate data
+                            name = name.strip()
+                            quantity = float(quantity)
+                            unit = unit.strip()
+
+                            # Check if ingredient exists or create it
+                            ingredient_obj, created = Ingredient.objects.get_or_create(name=name)
+
+                            # Create a relationship in the RecipeIngredients table
+                            RecipeIngredients.objects.create(
+                                recipe=recipe,
+                                ingredient=ingredient_obj,
+                                quantity=quantity,
+                                unit=unit,
+                            )
 
         return True, 'Recipes uploaded successfully!'
     except Exception as e:

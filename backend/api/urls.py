@@ -7,7 +7,7 @@ from .views import (
     DayPlanRecipesDetailView, RatedRecipesListCreateView, RatedRecipesDetailView, UserWeightListCreateView, 
     UserWeightDetailView,
     UserIngredientsListCreateView, UserIngredientsDetailView, UserNutrientPreferencesView,
-    UserDislikedIngredientsView
+    UserDislikedIngredientsView, RecipeListView, RecipeTypeView
 )
 
 from .views import upload_recipes_csv, meal_selection_view
@@ -29,9 +29,8 @@ urlpatterns = [
     path('ingredients/', IngredientListCreateView.as_view(), name='ingredient-list'),
     path('disliked-ingredients/', UserDislikedIngredientsView.as_view(), name='user-disliked-ingredients'),
 
-    
-    
-    path('recipes/', RecipeListCreateView.as_view(), name='recipe-list'),
+    path('recipes/by-type/', RecipeTypeView.as_view(), name='recipe-by-type'),
+    path('recipes/', RecipeListView.as_view(), name='recipe-list'),
     path('recipes/<int:pk>/', RecipeDetailView.as_view(), name='recipe-detail'),
 
     path('recipe-ingredients/', RecipeIngredientsListCreateView.as_view(), name='recipeingredients-list'),
