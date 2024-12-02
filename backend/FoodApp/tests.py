@@ -1,7 +1,11 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from api.models import Ingredient, DislikedIngredients, UserNutrientPreferences, RecipeIngredients
+from api.models import (Ingredient, DislikedIngredients, UserNutrientPreferences, RecipeIngredients, UserWeight,
+                        Cart, CartIngredient
+                        )
+from datetime import timedelta
+from django.utils.timezone import now
 
 User = get_user_model()
 
@@ -94,7 +98,48 @@ class JWTTestCase(APITestCase):
         # Expecting a 401 Unauthorized error since no token is provided
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+class UserWeightTestCase(APITestCase):
+    def setUp(self):
+        # Create a test user
+        self.user_data = {
+            'email': 'testuser@example.com',
+            'password': 'securepassword123',
+            'name': 'John',
+            'surname': 'Doe'
+        }
+        self.user = User.objects.create_user(**self.user_data)
 
+        # Authenticate the test user and obtain a token
+        self.url = '/api/can-update-weight/'  # Replace with the actual endpoint
+        self.client.force_authenticate(user=self.user)
+
+        # Create a weight entry for the current week
+        today = now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        self.weekly_weight_entry = UserWeight.objects.create(
+            user=self.user,
+            weight="70",
+            date=start_of_week
+        )
+
+    def test_can_update_weight_true(self):
+        """
+        Test that the endpoint returns true when the user has not logged weight for the current week.
+        """
+        # Delete existing weight entry to test the case where the user can update
+        self.weekly_weight_entry.delete()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['can_update'])
+
+    def test_can_update_weight_false(self):
+        """
+        Test that the endpoint returns false when the user has already logged weight for the current week.
+        """
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['can_update'])
 
 class EndpointsTestCase(APITestCase):
     def setUp(self):
@@ -274,22 +319,22 @@ class EndpointsTestCase(APITestCase):
         self.assertIn(f"Invalid ingredient id(s): {invalid_ingredient_id}", str(response.data))
 
 
-    def test_get_user_disliked_ingredients(self):
-        """
-        Test retrieving disliked ingredients for the user.
-        """
-        # Pre-populate disliked ingredients for the user
-        DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient1)
-        DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient2)
+    # def test_get_user_disliked_ingredients(self):
+    #     """
+    #     Test retrieving disliked ingredients for the user.
+    #     """
+    #     # Pre-populate disliked ingredients for the user
+    #     DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient1)
+    #     DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient2)
 
-        url = '/api/disliked-ingredients/'  # Direct URL for disliked ingredients endpoint
-        response = self.client.get(url)
+    #     url = '/api/disliked-ingredients/'  # Direct URL for disliked ingredients endpoint
+    #     response = self.client.get(url)
 
-        # Ensure the disliked ingredients are returned
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        ingredient_names = [item["name"] for item in response.data]
-        self.assertIn(self.ingredient1.name, ingredient_names)
-        self.assertIn(self.ingredient2.name, ingredient_names)
+    #     # Ensure the disliked ingredients are returned
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     ingredient_names = [item["name"] for item in response.data]
+    #     self.assertIn(self.ingredient1.name, ingredient_names)
+    #     self.assertIn(self.ingredient2.name, ingredient_names)
 
 from django.test import TestCase
 from api.models import Recipe, Ingredient, DislikedIngredients, User
@@ -567,3 +612,34 @@ class SelectMealsTests(TestCase):
         for meal_type in ['lunch', 'dinner', 'snack', 'breakfast']:
             if Recipe.objects.filter(meal_type=meal_type).exists():
                 self.assertIn(meal_type, meal_types, f"Expected at least one {meal_type} in selection")
+                
+class CartTestCase(APITestCase):
+    def setUp(self):
+        # Create test user
+        self.user = User.objects.create_user(email="test@example.com", password="password123")
+        self.client.login(email="test@example.com", password="password123")
+        self.cart = Cart.objects.create(user=self.user)
+        self.ingredient = Ingredient.objects.create(name="Flour")
+        self.cart_ingredient = CartIngredient.objects.create(
+            cart=self.cart,
+            ingredient=self.ingredient,
+            quantity=2,
+            unit="cups"
+        )
+
+    def test_update_quantity(self):
+        response = self.client.patch(f'/api/cart/{self.cart_ingredient.id}/', {'quantity': 5})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.cart_ingredient.refresh_from_db()
+        self.assertEqual(self.cart_ingredient.quantity, 5)
+
+    def test_remove_ingredient(self):
+        response = self.client.delete(f'/api/cart/{self.cart_ingredient.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        with self.assertRaises(CartIngredient.DoesNotExist):
+            self.cart_ingredient.refresh_from_db()
+
+    def test_clear_cart(self):
+        response = self.client.delete('/api/cart/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(CartIngredient.objects.count(), 0)

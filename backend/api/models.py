@@ -6,6 +6,8 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return self.name
+    
+
 
 class Recipe(models.Model):
     title = models.CharField(max_length=255)
@@ -68,6 +70,22 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} {self.surname}"
 
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    ingredients = models.ManyToManyField(Ingredient, through='CartIngredient')
+
+    def __str__(self):
+        return f"Cart of {self.user}"
+
+class CartIngredient(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    unit = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.quantity} {self.unit} of {self.ingredient.name}"
+    
 class UserNutrientPreferences(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     min_calories = models.IntegerField(null=True, blank=True)

@@ -3,9 +3,12 @@ from rest_framework.exceptions import ValidationError
 from .models import (
     User, Recipe, Ingredient, RecipeIngredients, 
     DayPlan, DayPlanRecipes, RatedRecipes, UserWeight, 
-    DislikedIngredients, UserIngredients, UserNutrientPreferences
+    DislikedIngredients, UserIngredients, UserNutrientPreferences,
+    Cart, CartIngredient, CartIngredient
+    
 )
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
 
 User = get_user_model()
 
@@ -126,6 +129,31 @@ class RecipeSerializer(serializers.ModelSerializer):
             })
         
         return ingredient_data
+
+class CartIngredientSerializer(serializers.ModelSerializer):
+    ingredient = IngredientSerializer()
+
+    class Meta:
+        model = CartIngredient
+        fields = ['ingredient', 'quantity', 'unit']
+
+class CartSerializer(serializers.ModelSerializer):
+    ingredients = CartIngredientSerializer(many=True)
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'ingredients']
+
+class UserWeightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserWeight
+        fields = ['weight', 'date']
+
+    def validate_date(self, value):
+        # Ensure the date is not in the future
+        if value > timezone.now().date():
+            raise serializers.ValidationError("The date cannot be in the future.")
+        return value
 
 
 class DayPlanSerializer(serializers.ModelSerializer):

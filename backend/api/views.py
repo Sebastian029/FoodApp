@@ -7,17 +7,21 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from datetime import timedelta
+from django.utils.timezone import now
 
 from .serializers import RegisterSerializer
 from .models import (User, Recipe, Ingredient, RecipeIngredients,
                      DayPlan, DayPlanRecipes, RatedRecipes, UserWeight,
-                     DislikedIngredients, UserIngredients, UserNutrientPreferences
+                     DislikedIngredients, UserIngredients, UserNutrientPreferences,
+                     Cart, Ingredient, CartIngredient
 )
 from .serializers import (
     UserSerializer, RecipeSerializer, IngredientSerializer, 
     RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
-    UserIngredientsSerializer, UserNutrientPreferencesSerializer
+    UserIngredientsSerializer, UserNutrientPreferencesSerializer,
+    CartSerializer, IngredientSerializer
 )
 from .utils import select_meals, upload_recipes_from_csv
 
@@ -148,6 +152,239 @@ class RecipeTypeView(APIView):
         
         # Return the response
         return Response(serializer.data)
+    
+    
+class UpdateWeightView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure this line is present
+    def post(self, request):
+        user = request.user
+        weight = request.data.get('weight')
+        date = request.data.get('date', now().date())
+
+        # Ensure the user is authenticated
+        if not user.is_authenticated:
+            return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Calculate the start and end of the current week (Monday to Sunday)
+        today = now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+
+        # Check if there is already an entry for the current week
+        weekly_entry_exists = UserWeight.objects.filter(
+            user=user,
+            date__range=[start_of_week, end_of_week]
+        ).exists()
+
+        if weekly_entry_exists:
+            return Response({"error": "You can only update weight once per week."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a new weight entry
+        serializer = UserWeightSerializer(data={'user': user.id, 'weight': weight, 'date': date})
+        if serializer.is_valid():
+            serializer.save(user=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CanUpdateWeightView(APIView):
+    permission_classes = [IsAuthenticated]  
+    def get(self, request):
+        user = request.user
+
+        # Ensure the user is authenticated
+        if not user.is_authenticated:
+            return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Calculate the start and end of the current week (Monday to Sunday)
+        today = now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+
+        # Check if there is already an entry for the current week
+        weekly_entry_exists = UserWeight.objects.filter(
+            user=user,
+            date__range=[start_of_week, end_of_week]
+        ).exists()
+
+        # Return true if the user can update weight, false otherwise
+        can_update = not weekly_entry_exists
+        return Response({"can_update": can_update}, status=status.HTTP_200_OK)
+    
+class CartAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_cart(self, user):
+        """
+        Get or create the user's cart.
+        """
+        cart, created = Cart.objects.get_or_create(user=user)
+        return cart
+
+    def post(self, request):
+        """
+        Adds ingredients to the user's cart. Supports adding ingredients
+        either by providing a list of ingredients or by providing a recipe ID.
+        """
+        user = request.user
+        cart = self.get_cart(user)
+
+        ingredients_data = request.data.get('ingredients')
+        recipe_id = request.data.get('recipe_id')
+
+        # If ingredients are provided
+        if ingredients_data:
+            for item in ingredients_data:
+                ingredient, created = Ingredient.objects.get_or_create(
+                    name=item['ingredient_name']
+                )
+
+                # Check if the ingredient already exists in the cart
+                existing_cart_ingredient = CartIngredient.objects.filter(cart=cart, ingredient=ingredient).first()
+
+                if existing_cart_ingredient:
+                    # If the ingredient already exists in the cart, we do not sum quantities, we just add a new entry
+                    if existing_cart_ingredient.unit != item['unit']:
+                        # If the units are different, just add the new entry with the new unit and quantity
+                        CartIngredient.objects.create(
+                            cart=cart,
+                            ingredient=ingredient,
+                            quantity=item['quantity'],
+                            unit=item['unit']  # unit should be part of CartIngredient
+                        )
+                    else:
+                        # If the units are the same, simply sum the quantities
+                        existing_cart_ingredient.quantity += item['quantity']
+                        existing_cart_ingredient.save()
+                else:
+                    # If the ingredient doesn't exist in the cart, create a new CartIngredient
+                    CartIngredient.objects.create(
+                        cart=cart,
+                        ingredient=ingredient,
+                        quantity=item['quantity'],
+                        unit=item['unit']  # unit should be part of CartIngredient
+                    )
+
+            return Response({"message": "Ingredients added to cart."}, status=status.HTTP_201_CREATED)
+
+        # If a recipe ID is provided
+        elif recipe_id:
+            try:
+                # Fetch the recipe based on the recipe_id
+                recipe = Recipe.objects.get(id=recipe_id)
+
+                # Serialize the recipe and get the ingredients
+                serializer = RecipeSerializer(recipe)
+                print(serializer.data)
+                ingredients = serializer.data.get('ingredients')
+
+                # Debugging: Print the recipe ingredients
+                print(f"Recipe ID: {recipe_id}")
+                print(f"Recipe Title: {recipe.title}")
+                print(f"Ingredients: {ingredients}")
+
+                if not ingredients:
+                    return Response({"message": "No ingredients found in this recipe."}, status=status.HTTP_404_NOT_FOUND)
+
+                # Add each ingredient from the recipe to the cart
+                for item in ingredients:
+                    ingredient, created = Ingredient.objects.get_or_create(
+                        name=item['ingredient_name']
+                    )
+
+                    # Check if the ingredient already exists in the cart
+                    existing_cart_ingredient = CartIngredient.objects.filter(cart=cart, ingredient=ingredient).first()
+
+                    if existing_cart_ingredient:
+                        # If the ingredient already exists in the cart, we do not sum quantities, we just add a new entry
+                        if existing_cart_ingredient.unit != item['unit']:
+                            # If the units are different, just add the new entry with the new unit and quantity
+                            CartIngredient.objects.create(
+                                cart=cart,
+                                ingredient=ingredient,
+                                quantity=item['quantity'],
+                                unit=item['unit']
+                            )
+                        else:
+                            # If the units are the same, simply sum the quantities
+                            existing_cart_ingredient.quantity += item['quantity']
+                            existing_cart_ingredient.save()
+                    else:
+                        # If the ingredient doesn't exist in the cart, create a new CartIngredient
+                        CartIngredient.objects.create(
+                            cart=cart,
+                            ingredient=ingredient,
+                            quantity=item['quantity'],
+                            unit=item['unit']
+                        )
+
+                return Response({"message": "Ingredients from recipe added to cart."}, status=status.HTTP_201_CREATED)
+            
+            except Recipe.DoesNotExist:
+                return Response({"message": "Recipe not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({"message": "No ingredients or recipe ID provided."}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        """
+        Retrieves the ingredients in the user's cart.
+        """
+        user = request.user
+        cart = self.get_cart(user)
+
+        cart_ingredients = CartIngredient.objects.filter(cart=cart)
+        cart_ingredients_data = []
+
+        for item in cart_ingredients:
+            cart_ingredients_data.append({
+                'id': item.id,  # Include the ID of the CartIngredient
+                'ingredient_name': item.ingredient.name,
+                'quantity': item.quantity,
+                'unit': item.unit
+            })
+
+        return Response({'cart_ingredients': cart_ingredients_data}, status=status.HTTP_200_OK)
+
+    def patch(self, request, ingredient_id):
+        """
+        Edit the quantity of a specific ingredient in the cart.
+        """
+        user = request.user
+        cart = self.get_cart(user)
+        
+        try:
+            cart_ingredient = CartIngredient.objects.get(cart=cart, id=ingredient_id)
+        except CartIngredient.DoesNotExist:
+            return Response({"message": "Ingredient not found in cart."}, status=status.HTTP_404_NOT_FOUND)
+
+        quantity = request.data.get('quantity')
+
+        if quantity is not None and quantity > 0:
+            cart_ingredient.quantity = quantity
+            cart_ingredient.save()
+            return Response({"message": "Ingredient quantity updated."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "Invalid quantity."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, ingredient_id=None):
+        """
+        Remove a specific ingredient from the cart, or clear the entire cart if no id is provided.
+        The removal will only affect the cart, not the original recipe or ingredients.
+        """
+        user = request.user
+        cart = self.get_cart(user)
+
+        if ingredient_id:
+            try:
+                # Find the CartIngredient entry (ingredient in the cart)
+                cart_ingredient = CartIngredient.objects.get(cart=cart, id=ingredient_id)
+                cart_ingredient.delete()  # Remove the entry from the cart
+                return Response({"message": "Ingredient removed from cart."}, status=status.HTTP_200_OK)
+            except CartIngredient.DoesNotExist:
+                return Response({"message": "Ingredient not found in cart."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # If no ingredient ID is provided, clear all items in the cart
+            cart.ingredients.all().delete()  # Remove all ingredients in the cart
+            return Response({"message": "All ingredients removed from cart."}, status=status.HTTP_200_OK)
+
 
 # RecipeIngredients Views
 class RecipeIngredientsListCreateView(generics.ListCreateAPIView):

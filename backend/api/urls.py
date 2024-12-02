@@ -7,7 +7,8 @@ from .views import (
     DayPlanRecipesDetailView, RatedRecipesListCreateView, RatedRecipesDetailView, UserWeightListCreateView, 
     UserWeightDetailView,
     UserIngredientsListCreateView, UserIngredientsDetailView, UserNutrientPreferencesView,
-    UserDislikedIngredientsView, RecipeListView, RecipeTypeView
+    UserDislikedIngredientsView, RecipeListView, RecipeTypeView, UpdateWeightView, CanUpdateWeightView,
+    CartAPIView
 )
 
 from .views import upload_recipes_csv, meal_selection_view
@@ -24,7 +25,6 @@ urlpatterns = [
     path('protected/', ProtectedView.as_view(), name='protected_view'),
     path('users/', UserListCreateView.as_view(), name='user-list'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
-    
     path('preferences/', UserNutrientPreferencesView.as_view(), name='user-nutrient-preferences'),
     path('ingredients/', IngredientListCreateView.as_view(), name='ingredient-list'),
     path('disliked-ingredients/', UserDislikedIngredientsView.as_view(), name='user-disliked-ingredients'),
@@ -32,6 +32,12 @@ urlpatterns = [
     path('recipes/by-type/', RecipeTypeView.as_view(), name='recipe-by-type'),
     path('recipes/', RecipeListView.as_view(), name='recipe-list'),
     path('recipes/<int:pk>/', RecipeDetailView.as_view(), name='recipe-detail'),
+    path('can-update-weight/', CanUpdateWeightView.as_view(), name='can-update-weight'),
+    path('update-weight/', UpdateWeightView.as_view(), name='update-weight'),
+    path('cart/', CartAPIView.as_view(), name='cart_api'),
+    path('cart/<int:ingredient_id>/', CartAPIView.as_view(), name='cart-ingredient'), 
+
+    
 
     path('recipe-ingredients/', RecipeIngredientsListCreateView.as_view(), name='recipeingredients-list'),
     path('recipe-ingredients/<int:pk>/', RecipeIngredientsDetailView.as_view(), name='recipeingredients-detail'),
