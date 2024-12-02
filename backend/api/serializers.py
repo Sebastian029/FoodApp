@@ -131,11 +131,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         return ingredient_data
 
 class CartIngredientSerializer(serializers.ModelSerializer):
-    ingredient = IngredientSerializer()
-
     class Meta:
         model = CartIngredient
-        fields = ['ingredient', 'quantity', 'unit']
+        fields = ['id', 'ingredient', 'quantity', 'unit', 'bought']  
 
 class CartSerializer(serializers.ModelSerializer):
     ingredients = CartIngredientSerializer(many=True)

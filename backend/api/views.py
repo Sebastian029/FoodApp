@@ -335,34 +335,39 @@ class CartAPIView(APIView):
 
         for item in cart_ingredients:
             cart_ingredients_data.append({
-                'id': item.id,  # Include the ID of the CartIngredient
+                'id': item.id,
                 'ingredient_name': item.ingredient.name,
                 'quantity': item.quantity,
-                'unit': item.unit
+                'unit': item.unit,
+                'bought': item.bought  # Include bought status
             })
 
         return Response({'cart_ingredients': cart_ingredients_data}, status=status.HTTP_200_OK)
 
     def patch(self, request, ingredient_id):
         """
-        Edit the quantity of a specific ingredient in the cart.
+        Update the quantity or 'bought' status of a specific ingredient in the cart.
         """
         user = request.user
         cart = self.get_cart(user)
-        
+
         try:
             cart_ingredient = CartIngredient.objects.get(cart=cart, id=ingredient_id)
         except CartIngredient.DoesNotExist:
             return Response({"message": "Ingredient not found in cart."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Update quantity if provided
         quantity = request.data.get('quantity')
-
-        if quantity is not None and quantity > 0:
+        if quantity is not None:
             cart_ingredient.quantity = quantity
-            cart_ingredient.save()
-            return Response({"message": "Ingredient quantity updated."}, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Invalid quantity."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update bought status if provided
+        bought = request.data.get('bought')
+        if bought is not None:
+            cart_ingredient.bought = bought
+
+        cart_ingredient.save()
+        return Response({"message": "Cart ingredient updated."}, status=status.HTTP_200_OK)
 
     def delete(self, request, ingredient_id=None):
         """

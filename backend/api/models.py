@@ -82,6 +82,7 @@ class CartIngredient(models.Model):
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     quantity = models.FloatField()
     unit = models.CharField(max_length=50)
+    bought = models.BooleanField(default=False)  
 
     def __str__(self):
         return f"{self.quantity} {self.unit} of {self.ingredient.name}"
