@@ -319,22 +319,6 @@ class EndpointsTestCase(APITestCase):
         self.assertIn(f"Invalid ingredient id(s): {invalid_ingredient_id}", str(response.data))
 
 
-    # def test_get_user_disliked_ingredients(self):
-    #     """
-    #     Test retrieving disliked ingredients for the user.
-    #     """
-    #     # Pre-populate disliked ingredients for the user
-    #     DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient1)
-    #     DislikedIngredients.objects.create(user=self.user, ingredient=self.ingredient2)
-
-    #     url = '/api/disliked-ingredients/'  # Direct URL for disliked ingredients endpoint
-    #     response = self.client.get(url)
-
-    #     # Ensure the disliked ingredients are returned
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     ingredient_names = [item["name"] for item in response.data]
-    #     self.assertIn(self.ingredient1.name, ingredient_names)
-    #     self.assertIn(self.ingredient2.name, ingredient_names)
 
 from django.test import TestCase
 from api.models import Recipe, Ingredient, DislikedIngredients, User
@@ -521,65 +505,6 @@ class SelectMealsTests(TestCase):
         # Check that some meals were selected
         self.assertTrue(len(selected_meals) > 0, "Expected meals to be selected")
 
-   
-    # def test_disliked_ingredient_exclusion(self):
-    #     """Test that recipes containing a disliked ingredient are excluded from meal selection."""
-
-    #     # Add disliked ingredient via the through model
-    #     disliked_ingredient = Ingredient.objects.create(name="Onion")
-    #     DislikedIngredients.objects.create(user=self.user, ingredient=disliked_ingredient)
-
-    #     # Create recipes
-    #     recipe_with_disliked_ingredient = Recipe.objects.create(
-    #         title="Onion Soup",
-    #         description="Soup made with onions",
-    #         total_calories="150",
-    #         sugars="5",
-    #         protein="2",
-    #         iron="1",
-    #         potassium="10",
-    #         preparation_time=30,
-    #         preparation_guide="Boil onions and season",
-    #         meal_type="Lunch"
-    #     )
-    #     RecipeIngredients.objects.create(
-    #         recipe=recipe_with_disliked_ingredient,
-    #         ingredient=disliked_ingredient,
-    #         quantity=1,
-    #         unit="piece"
-    #     )
-
-    #     recipe_without_disliked_ingredient = Recipe.objects.create(
-    #         title="Tomato Salad",
-    #         description="Fresh tomato salad",
-    #         total_calories="100",
-    #         sugars="4",
-    #         protein="1",
-    #         iron="0.5",
-    #         potassium="8",
-    #         preparation_time=15,
-    #         preparation_guide="Mix sliced tomatoes with dressing",
-    #         meal_type="Dinner"
-    #     )
-    #     tomato = Ingredient.objects.create(name="Tomato")
-    #     RecipeIngredients.objects.create(
-    #         recipe=recipe_without_disliked_ingredient,
-    #         ingredient=tomato,
-    #         quantity=2,
-    #         unit="pieces"
-    #     )
-
-    #     # Run the meal selection logic
-    #     selected_meals = select_meals(self.user)
-
-    #     # Assert that recipes with disliked ingredients are excluded
-    #     self.assertNotIn(recipe_with_disliked_ingredient, selected_meals,
-    #                     "Recipe with disliked ingredient should not be selected.")
-    #     # Assert that recipes without disliked ingredients are included
-    #     self.assertIn(recipe_without_disliked_ingredient, selected_meals,
-    #                 "Recipe without disliked ingredients should be selected.")
-
-
     def test_nutritional_preferences_constraints(self):
         """Test that selected meals respect the user's nutritional preferences."""
         selected_meals = select_meals(optimize_field='protein', objective='maximize', user=self.user)
@@ -616,8 +541,21 @@ class SelectMealsTests(TestCase):
 class CartTestCase(APITestCase):
     def setUp(self):
         # Create test user
-        self.user = User.objects.create_user(email="test@example.com", password="password123")
-        self.client.login(email="test@example.com", password="password123")
+        self.user_data = {
+            'email': 'test@example.com',
+            'password': 'password123'
+        }
+        self.user = User.objects.create_user(**self.user_data)
+
+        # Obtain JWT token pair
+        response = self.client.post('/api/token/', self.user_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # Ensure the tokens are issued
+        self.access_token = response.data['access']
+
+        # Set credentials for authenticated requests
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+        # Set up cart, ingredients, and cart ingredients
         self.cart = Cart.objects.create(user=self.user)
         self.ingredient = Ingredient.objects.create(name="Flour")
         self.cart_ingredient = CartIngredient.objects.create(
@@ -626,20 +564,165 @@ class CartTestCase(APITestCase):
             quantity=2,
             unit="cups"
         )
+        
+        self.recipe = Recipe.objects.create(
+        title="Pancakes",
+        description="Delicious pancakes",
+        total_calories=500,
+        protein=10,
+        sugars=5,
+        iron=2,
+        potassium=200,
+        preparation_time=11,
+        preparation_guide="Mix and cook.",
+        meal_type="Breakfast"
+    )
+
+        # Create ingredients (without quantity and unit)
+        self.recipe_ingredient_1 = Ingredient.objects.create(name="Eggs")
+        self.recipe_ingredient_2 = Ingredient.objects.create(name="Milk")
+
+        # Create RecipeIngredient instances linking ingredients to the recipe with quantities and units
+        RecipeIngredients.objects.create(recipe=self.recipe, ingredient=self.recipe_ingredient_1, quantity=3, unit="units")
+        RecipeIngredients.objects.create(recipe=self.recipe, ingredient=self.recipe_ingredient_2, quantity=2, unit="cups")
+
 
     def test_update_quantity(self):
-        response = self.client.patch(f'/api/cart/{self.cart_ingredient.id}/', {'quantity': 5})
+        """Test updating the quantity of an ingredient in the cart."""
+        response = self.client.patch(
+            f'/api/cart/{self.cart_ingredient.id}/', 
+            {'quantity': 5},
+            format='json'
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.cart_ingredient.refresh_from_db()
-        self.assertEqual(self.cart_ingredient.quantity, 5)
+        self.cart_ingredient.refresh_from_db()  # Refresh to get the updated value
+        self.assertEqual(self.cart_ingredient.quantity, 5)  # Check if the quantity was updated correctly
 
     def test_remove_ingredient(self):
+        """Test removing an ingredient from the cart."""
         response = self.client.delete(f'/api/cart/{self.cart_ingredient.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Ensure that the ingredient is removed from the cart
         with self.assertRaises(CartIngredient.DoesNotExist):
-            self.cart_ingredient.refresh_from_db()
+            self.cart_ingredient.refresh_from_db()  # Try to refresh and check if it doesn't exist
 
     def test_clear_cart(self):
+        """Test clearing the entire cart by removing all ingredients."""
+        # Add another ingredient to the cart to test clearing functionality
+        additional_ingredient = Ingredient.objects.create(name="Sugar")
+        CartIngredient.objects.create(
+            cart=self.cart,
+            ingredient=additional_ingredient,
+            quantity=1,
+            unit="cups"
+        )
+
         response = self.client.delete('/api/cart/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(CartIngredient.objects.count(), 0)
+
+        # Ensure that all CartIngredient entries are deleted
+        self.assertEqual(CartIngredient.objects.filter(cart=self.cart).count(), 0)
+
+    def test_add_ingredient_to_cart(self):
+        """Test adding an ingredient to the cart."""
+        ingredient_data = {
+            'ingredients': [
+                {
+                    'ingredient_name': 'Sugar',
+                    'quantity': 3,
+                    'unit': 'cups'
+                }
+            ]
+        }
+
+        response = self.client.post('/api/cart/', ingredient_data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that the ingredient is in the cart now
+        ingredient = Ingredient.objects.get(name="Sugar")
+        cart_ingredient = CartIngredient.objects.get(cart=self.cart, ingredient=ingredient)
+        self.assertEqual(cart_ingredient.quantity, 3)
+        self.assertEqual(cart_ingredient.unit, 'cups')
+
+    def test_add_multiple_ingredients_to_cart(self):
+        """Test adding multiple ingredients to the cart."""
+        ingredient_data = {
+            'ingredients': [
+                {'ingredient_name': 'Sugar', 'quantity': 3, 'unit': 'cups'},
+                {'ingredient_name': 'Butter', 'quantity': 2, 'unit': 'tbsp'}
+            ]
+        }
+
+        response = self.client.post('/api/cart/', ingredient_data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that both ingredients are added to the cart
+        sugar = Ingredient.objects.get(name="Sugar")
+        butter = Ingredient.objects.get(name="Butter")
+
+        cart_ingredient_sugar = CartIngredient.objects.get(cart=self.cart, ingredient=sugar)
+        cart_ingredient_butter = CartIngredient.objects.get(cart=self.cart, ingredient=butter)
+
+        self.assertEqual(cart_ingredient_sugar.quantity, 3)
+        self.assertEqual(cart_ingredient_butter.quantity, 2)
+        self.assertEqual(cart_ingredient_sugar.unit, 'cups')
+        self.assertEqual(cart_ingredient_butter.unit, 'tbsp')
+
+    def test_add_ingredients_by_recipe(self):
+        """Test adding ingredients from a recipe to the cart."""
+        recipe_data = {
+            'recipe_id': self.recipe.id
+        }
+
+        response = self.client.post('/api/cart/', recipe_data, format='json')
+
+        # Print response details to debug
+        print(response.data)  # Add this to print the response body for inspection
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that all ingredients from the recipe are added to the cart
+        cart_ingredient_eggs = CartIngredient.objects.get(cart=self.cart, ingredient=self.recipe_ingredient_1)
+        cart_ingredient_milk = CartIngredient.objects.get(cart=self.cart, ingredient=self.recipe_ingredient_2)
+
+        self.assertEqual(cart_ingredient_eggs.quantity, 3)
+        self.assertEqual(cart_ingredient_milk.quantity, 2)
+        self.assertEqual(cart_ingredient_eggs.unit, 'units')  # Assume "units" for this example, change as needed
+        self.assertEqual(cart_ingredient_milk.unit, 'cups')  # Assume "cups" for this example, change as needed
+
+    def test_add_invalid_ingredient_quantity(self):
+        """Test adding ingredients with negative quantity or invalid input (letters)."""
+        # Test negative quantity
+        ingredient_data_negative = {
+            'ingredients': [
+                {
+                    'ingredient_name': 'Sugar',
+                    'quantity': -3,  # Invalid quantity
+                    'unit': 'cups'
+                }
+            ]
+        }
+
+        response_negative = self.client.post('/api/cart/', ingredient_data_negative, format='json')
+        self.assertEqual(response_negative.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('message', response_negative.data)
+        self.assertEqual(response_negative.data['message'], 'Quantity must be a positive number.')
+
+        # Test invalid quantity (letters)
+        ingredient_data_invalid = {
+            'ingredients': [
+                {
+                    'ingredient_name': 'Sugar',
+                    'quantity': 'abc',  # Invalid quantity (letters)
+                    'unit': 'cups'
+                }
+            ]
+        }
+
+        response_invalid = self.client.post('/api/cart/', ingredient_data_invalid, format='json')
+        self.assertEqual(response_invalid.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('message', response_invalid.data)
+        self.assertEqual(response_invalid.data['message'], 'Quantity must be a positive number.')

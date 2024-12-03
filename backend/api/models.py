@@ -71,7 +71,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.name} {self.surname}"
 
 class Cart(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Ensures one cart per user
     ingredients = models.ManyToManyField(Ingredient, through='CartIngredient')
 
     def __str__(self):

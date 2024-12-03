@@ -212,7 +212,12 @@ class CanUpdateWeightView(APIView):
     
 class CartAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
+    @staticmethod
+    def is_positive_number(value):
+        """Check if the value is a positive number (either int or float)."""
+        return isinstance(value, (int, float)) and value > 0
+    
     def get_cart(self, user):
         """
         Get or create the user's cart.
@@ -226,7 +231,7 @@ class CartAPIView(APIView):
         either by providing a list of ingredients or by providing a recipe ID.
         """
         user = request.user
-        cart = self.get_cart(user)
+        cart = self.get_cart(user)  # This line ensures that the cart is created or fetched
 
         ingredients_data = request.data.get('ingredients')
         recipe_id = request.data.get('recipe_id')
@@ -234,6 +239,9 @@ class CartAPIView(APIView):
         # If ingredients are provided
         if ingredients_data:
             for item in ingredients_data:
+                quantity = item.get("quantity")
+                if not self.is_positive_number(quantity):
+                    return Response({"message": "Quantity must be a positive number."}, status=status.HTTP_400_BAD_REQUEST)
                 ingredient, created = Ingredient.objects.get_or_create(
                     name=item['ingredient_name']
                 )
@@ -242,26 +250,22 @@ class CartAPIView(APIView):
                 existing_cart_ingredient = CartIngredient.objects.filter(cart=cart, ingredient=ingredient).first()
 
                 if existing_cart_ingredient:
-                    # If the ingredient already exists in the cart, we do not sum quantities, we just add a new entry
                     if existing_cart_ingredient.unit != item['unit']:
-                        # If the units are different, just add the new entry with the new unit and quantity
                         CartIngredient.objects.create(
                             cart=cart,
                             ingredient=ingredient,
                             quantity=item['quantity'],
-                            unit=item['unit']  # unit should be part of CartIngredient
+                            unit=item['unit']
                         )
                     else:
-                        # If the units are the same, simply sum the quantities
                         existing_cart_ingredient.quantity += item['quantity']
                         existing_cart_ingredient.save()
                 else:
-                    # If the ingredient doesn't exist in the cart, create a new CartIngredient
                     CartIngredient.objects.create(
                         cart=cart,
                         ingredient=ingredient,
                         quantity=item['quantity'],
-                        unit=item['unit']  # unit should be part of CartIngredient
+                        unit=item['unit']
                     )
 
             return Response({"message": "Ingredients added to cart."}, status=status.HTTP_201_CREATED)
@@ -269,35 +273,25 @@ class CartAPIView(APIView):
         # If a recipe ID is provided
         elif recipe_id:
             try:
-                # Fetch the recipe based on the recipe_id
                 recipe = Recipe.objects.get(id=recipe_id)
-
-                # Serialize the recipe and get the ingredients
                 serializer = RecipeSerializer(recipe)
-                print(serializer.data)
                 ingredients = serializer.data.get('ingredients')
-
-                # Debugging: Print the recipe ingredients
-                print(f"Recipe ID: {recipe_id}")
-                print(f"Recipe Title: {recipe.title}")
-                print(f"Ingredients: {ingredients}")
 
                 if not ingredients:
                     return Response({"message": "No ingredients found in this recipe."}, status=status.HTTP_404_NOT_FOUND)
 
-                # Add each ingredient from the recipe to the cart
                 for item in ingredients:
+                    quantity = item.get("quantity")
+                    if not self.is_positive_number(quantity):
+                        return Response({"message": "Quantity must be a positive number."}, status=status.HTTP_400_BAD_REQUEST)
                     ingredient, created = Ingredient.objects.get_or_create(
                         name=item['ingredient_name']
                     )
 
-                    # Check if the ingredient already exists in the cart
                     existing_cart_ingredient = CartIngredient.objects.filter(cart=cart, ingredient=ingredient).first()
 
                     if existing_cart_ingredient:
-                        # If the ingredient already exists in the cart, we do not sum quantities, we just add a new entry
                         if existing_cart_ingredient.unit != item['unit']:
-                            # If the units are different, just add the new entry with the new unit and quantity
                             CartIngredient.objects.create(
                                 cart=cart,
                                 ingredient=ingredient,
@@ -305,11 +299,9 @@ class CartAPIView(APIView):
                                 unit=item['unit']
                             )
                         else:
-                            # If the units are the same, simply sum the quantities
                             existing_cart_ingredient.quantity += item['quantity']
                             existing_cart_ingredient.save()
                     else:
-                        # If the ingredient doesn't exist in the cart, create a new CartIngredient
                         CartIngredient.objects.create(
                             cart=cart,
                             ingredient=ingredient,
@@ -318,7 +310,7 @@ class CartAPIView(APIView):
                         )
 
                 return Response({"message": "Ingredients from recipe added to cart."}, status=status.HTTP_201_CREATED)
-            
+
             except Recipe.DoesNotExist:
                 return Response({"message": "Recipe not found."}, status=status.HTTP_404_NOT_FOUND)
 
