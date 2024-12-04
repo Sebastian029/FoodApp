@@ -110,11 +110,18 @@ class UserNutrientPreferences(models.Model):
 class DayPlan(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'date')  # Prevent duplicate day plans for the same user and date
 
 
 class DayPlanRecipes(models.Model):
-    day_plan = models.ForeignKey(DayPlan, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    day_plan = models.ForeignKey(DayPlan, on_delete=models.CASCADE, related_name='recipes')
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('day_plan', 'recipe')  # Prevent duplicate recipes in the same day's plan
 
 class RatedRecipes(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -137,3 +144,12 @@ class UserIngredients(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+
+
+class UserRecipeUsage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
+    last_used = models.DateField(auto_now=True) 
+    
+    class Meta:
+        unique_together = ('user', 'recipe') 

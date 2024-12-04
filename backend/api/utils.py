@@ -6,9 +6,44 @@ from django.contrib.auth import get_user_model
 import csv
 from django.db import transaction
 
+# api/utils.py
+from datetime import datetime, timedelta
+from .models import DayPlan, DayPlanRecipes, UserRecipeUsage
+
+def plan_meals_for_week(user):
+    today = datetime.today().date()
+    used_recipe_ids = DayPlanRecipes.objects.filter(
+        day_plan__user=user
+    ).values_list('recipe_id', flat=True)
+
+    for i in range(7):
+        plan_date = today + timedelta(days=i)
+
+        # Get or create a DayPlan for the specific date
+        day_plan, created = DayPlan.objects.get_or_create(user=user, date=plan_date)
+
+        # Skip if the day already has enough recipes (e.g., 3 per day)
+        if DayPlanRecipes.objects.filter(day_plan=day_plan).count() >= 3:
+            continue
+
+        # Select meals for the day
+        selected_recipes = select_meals(user, excluded_ids=used_recipe_ids)
+
+        # Add selected recipes to the DayPlan and update usage
+        for recipe in selected_recipes:
+            if not DayPlanRecipes.objects.filter(day_plan=day_plan, recipe=recipe).exists():
+                DayPlanRecipes.objects.create(day_plan=day_plan, recipe=recipe)
+
+                # Update or create a UserRecipeUsage record
+                UserRecipeUsage.objects.update_or_create(
+                    user=user,
+                    recipe=recipe,
+                    defaults={'last_used': today}
+                )
 
 
-def select_meals(user, optimize_field='protein', objective='maximize'):
+
+def select_meals(user, optimize_field='protein', objective='maximize', excluded_ids=[]):
     # Get user nutrient preferences, or create them if they don't exist
     preferences, created = UserNutrientPreferences.objects.get_or_create(
         user=user,

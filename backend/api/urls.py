@@ -8,10 +8,10 @@ from .views import (
     UserWeightDetailView,
     UserIngredientsListCreateView, UserIngredientsDetailView, UserNutrientPreferencesView,
     UserDislikedIngredientsView, RecipeListView, RecipeTypeView, UpdateWeightView, CanUpdateWeightView,
-    CartAPIView
+    CartAPIView, weekly_meal_plan_view, get_planned_recipes
 )
 
-from .views import upload_recipes_csv, meal_selection_view
+from .views import upload_recipes_csv
 from .views import RegisterView, CustomTokenObtainPairView
 from .views import ProtectedView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -60,5 +60,10 @@ urlpatterns = [
     path('user-ingredients/<int:pk>/', UserIngredientsDetailView.as_view(), name='useringredients-detail'),
     
     path('upload-recipes/', upload_recipes_csv, name='upload-recipes'),
-    path('plan_meals/', meal_selection_view, name='select_meals')
+    #path('plan_meals/', meal_selection_view, name='select_meals'),
+    
+    path('weekly-meal-plan/', weekly_meal_plan_view, name='weekly_meal_plan'),
+    path('planned-recipes/', get_planned_recipes, name='planned_recipes'),
+
+
 ]

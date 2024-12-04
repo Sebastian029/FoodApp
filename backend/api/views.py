@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils.timezone import now
 
 from .serializers import RegisterSerializer
@@ -23,7 +23,7 @@ from .serializers import (
     UserIngredientsSerializer, UserNutrientPreferencesSerializer,
     CartSerializer, IngredientSerializer
 )
-from .utils import select_meals, upload_recipes_from_csv
+from .utils import  upload_recipes_from_csv, plan_meals_for_week
 
 
 class RegisterView(APIView):
@@ -468,16 +468,67 @@ def upload_recipes_csv(request):
     else:
         return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+def weekly_meal_plan_view(request):
+    user = request.user  # Get the logged-in user
+    today = datetime.today().date()
+
+    # Initialize response data
+    weekly_plan = []
+
+    # Loop through the next 7 days
+    for i in range(7):
+        plan_date = today + timedelta(days=i)
+
+        # Retrieve the day plan for this date
+        day_plan = DayPlan.objects.filter(user=user, date=plan_date).first()
+        if day_plan:
+            # Serialize the recipes in the day plan
+            recipes = DayPlanRecipes.objects.filter(day_plan=day_plan).select_related('recipe')
+            recipe_data = [
+                {
+                    'id': recipe.recipe.id,
+                    'title': recipe.recipe.title,
+                    'meal_type': recipe.recipe.meal_type,
+                    'total_calories': recipe.recipe.total_calories,
+                }
+                for recipe in recipes
+            ]
+
+            # Add the day's plan to the weekly plan
+            weekly_plan.append({
+                'date': plan_date.strftime('%Y-%m-%d'),  # Convert date to string
+                'recipes': recipe_data,
+            })
+
+    return Response({"weekly_plan": weekly_plan})
+
 @api_view(['GET'])
-def meal_selection_view(request):
-    # Get the user from the request (assuming the user is authenticated)
-    user = request.user
-    
-    # Pass the user to the select_meals function
-    selected_meals = select_meals(user=user)  # Pass user as an argument to select_meals
-    
-    # Serialize the selected meals
-    serializer = RecipeSerializer(selected_meals, many=True)
-    
-    # Return the selected meals as a response
-    return Response({"selected_meals": serializer.data})
+def get_planned_recipes(request):
+    """
+    Retrieve all planned recipes for the authenticated user, grouped by day.
+    """
+    user = request.user  # Ensure the user is authenticated
+
+    # Get today's date and the next 6 days
+    today = datetime.today().date()
+    end_date = today + timedelta(days=6)
+
+    # Query all planned recipes for the user within the 7-day range
+    plans = DayPlanRecipes.objects.filter(
+        day_plan__user=user,
+        day_plan__date__range=(today, end_date)
+    ).select_related('day_plan', 'recipe')
+
+    # Group recipes by day
+    planned_recipes = {}
+    for plan in plans:
+        plan_date = plan.day_plan.date.strftime('%Y-%m-%d')  # Convert date to string
+        if plan_date not in planned_recipes:
+            planned_recipes[plan_date] = []
+        planned_recipes[plan_date].append(RecipeSerializer(plan.recipe).data)
+
+    # Format the response
+    return Response({
+        "planned_recipes": planned_recipes
+    })
