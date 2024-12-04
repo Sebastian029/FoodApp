@@ -2,9 +2,9 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from api.models import (Ingredient, DislikedIngredients, UserNutrientPreferences, RecipeIngredients, UserWeight,
-                        Cart, CartIngredient
+                        Cart, CartIngredient, DayPlanRecipes, DayPlan
                         )
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils.timezone import now
 
 User = get_user_model()
@@ -726,3 +726,124 @@ class CartTestCase(APITestCase):
         self.assertEqual(response_invalid.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('message', response_invalid.data)
         self.assertEqual(response_invalid.data['message'], 'Quantity must be a positive number.')
+        
+        
+class DayPlanRecipesTests(APITestCase):
+    def setUp(self):
+        # Create a test user
+        self.user_data = {
+            'email': 'test@example.com',
+            'password': 'password123',
+            'name': 'John',
+            'surname': 'Doe'
+        }
+        self.user = User.objects.create_user(**self.user_data)
+
+        # Obtain JWT token pair
+        response = self.client.post('/api/token/', {
+            'email': self.user_data['email'],
+            'password': self.user_data['password']
+        }, format='json')
+        self.access_token = response.data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+        # Create recipes
+        self.recipes = [
+            Recipe.objects.create(
+                title=f"Recipe {i}",
+                description=f"Description {i}",
+                total_calories=200 + i * 50,
+                meal_type="main" if i % 2 == 0 else "snack",
+                preparation_time=15
+            )
+            for i in range(1, 5)
+        ]
+
+    def test_post_weekly_meal_plan(self):
+        # Send POST request to generate weekly meal plan
+        response = self.client.post("/api/weekly-meal-plan/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Validate weekly plan structure
+        weekly_plan = response.data.get("weekly_plan", [])
+        self.assertEqual(len(weekly_plan), 7)  # 7 days of the week
+        for day_plan in weekly_plan:
+            self.assertIn("date", day_plan)
+            self.assertIn("recipes", day_plan)
+            self.assertIsInstance(day_plan["recipes"], list)
+
+    def test_get_planned_recipes(self):
+        # Pre-create a few day plans with recipes
+        today = datetime.today().date()
+        for i in range(3):
+            day_plan = DayPlan.objects.create(user=self.user, date=today + timedelta(days=i))
+            DayPlanRecipes.objects.create(day_plan=day_plan, recipe=self.recipes[i])
+
+        # Send GET request
+        response = self.client.get("/api/weekly-meal-plan/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Validate planned recipes structure
+        planned_recipes = response.data.get("planned_recipes", {})
+        self.assertTrue(planned_recipes)
+
+        # Ensure days are present and sorted correctly
+        for day, recipes in planned_recipes.items():
+            self.assertIsInstance(day, str)
+            self.assertIsInstance(recipes, list)
+
+    def test_patch_update_recipe_in_day_plan(self):
+        # Create a day plan and assign a recipe
+        today = datetime.today().date()
+        day_plan = DayPlan.objects.create(user=self.user, date=today)
+        current_recipe = self.recipes[0]
+        new_recipe = self.recipes[1]
+        DayPlanRecipes.objects.create(day_plan=day_plan, recipe=current_recipe)
+
+        # Send PATCH request to update recipe
+        patch_data = {
+            "day": today.strftime("%Y-%m-%d"),
+            "current_recipe_id": current_recipe.id,
+            "new_recipe_id": new_recipe.id
+        }
+        response = self.client.patch("/api/weekly-meal-plan/", patch_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Validate the update
+        updated_plan = DayPlanRecipes.objects.filter(day_plan=day_plan, recipe=new_recipe).exists()
+        self.assertTrue(updated_plan)
+
+    def test_patch_recipe_not_found(self):
+        # Create a day plan with a recipe
+        today = datetime.today().date()
+        day_plan = DayPlan.objects.create(user=self.user, date=today)
+        current_recipe = self.recipes[0]
+        DayPlanRecipes.objects.create(day_plan=day_plan, recipe=current_recipe)
+
+        # Send PATCH request with invalid recipe IDs
+        patch_data = {
+            "day": today.strftime("%Y-%m-%d"),
+            "current_recipe_id": 999,  # Non-existent recipe
+            "new_recipe_id": 888      # Non-existent recipe
+        }
+        response = self.client.patch("/api/weekly-meal-plan/", patch_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_patch_duplicate_recipe(self):
+        # Create a day plan and assign recipes
+        today = datetime.today().date()
+        day_plan = DayPlan.objects.create(user=self.user, date=today)
+        recipe1 = self.recipes[0]
+        recipe2 = self.recipes[1]
+        DayPlanRecipes.objects.create(day_plan=day_plan, recipe=recipe1)
+        DayPlanRecipes.objects.create(day_plan=day_plan, recipe=recipe2)
+
+        # Try to update recipe1 to recipe2, which already exists in the day plan
+        patch_data = {
+            "day": today.strftime("%Y-%m-%d"),
+            "current_recipe_id": recipe1.id,
+            "new_recipe_id": recipe2.id
+        }
+        response = self.client.patch("/api/weekly-meal-plan/", patch_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)

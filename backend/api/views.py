@@ -9,6 +9,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from datetime import timedelta, datetime
 from django.utils.timezone import now
+from django.db.models import Case, When, Value, IntegerField
+
 
 from .serializers import RegisterSerializer
 from .models import (User, Recipe, Ingredient, RecipeIngredients,
@@ -468,21 +470,28 @@ def upload_recipes_csv(request):
     else:
         return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['POST'])
-def weekly_meal_plan_view(request):
-    user = request.user  # Get the logged-in user
-    today = datetime.today().date()
+class WeeklyMealPlanView(APIView):
+    """
+    Handle meal planning and retrieval of weekly planned recipes for the authenticated user.
+    """
 
-    # Initialize response data
-    weekly_plan = []
+    def post(self, request):
+        """
+        Create or update a weekly meal plan for the user.
+        """
+        user = request.user  # Get the logged-in user
+        today = datetime.today().date()
 
-    # Loop through the next 7 days
-    for i in range(7):
-        plan_date = today + timedelta(days=i)
+        # Initialize response data
+        weekly_plan = []
 
-        # Retrieve the day plan for this date
-        day_plan = DayPlan.objects.filter(user=user, date=plan_date).first()
-        if day_plan:
+        # Loop through the next 7 days
+        for i in range(7):
+            plan_date = today + timedelta(days=i)
+
+            # Retrieve or create a day plan for this date
+            day_plan, created = DayPlan.objects.get_or_create(user=user, date=plan_date)
+
             # Serialize the recipes in the day plan
             recipes = DayPlanRecipes.objects.filter(day_plan=day_plan).select_related('recipe')
             recipe_data = [
@@ -501,34 +510,92 @@ def weekly_meal_plan_view(request):
                 'recipes': recipe_data,
             })
 
-    return Response({"weekly_plan": weekly_plan})
+        return Response({"weekly_plan": weekly_plan}, status=status.HTTP_200_OK)
 
-@api_view(['GET'])
-def get_planned_recipes(request):
-    """
-    Retrieve all planned recipes for the authenticated user, grouped by day.
-    """
-    user = request.user  # Ensure the user is authenticated
+    def get(self, request):
+        """
+        Retrieve all planned recipes for the authenticated user, grouped by day and sorted by meal type.
+        """
+        user = request.user  # Ensure the user is authenticated
 
-    # Get today's date and the next 6 days
-    today = datetime.today().date()
-    end_date = today + timedelta(days=6)
+        # Get today's date and the next 6 days
+        today = datetime.today().date()
+        end_date = today + timedelta(days=6)
 
-    # Query all planned recipes for the user within the 7-day range
-    plans = DayPlanRecipes.objects.filter(
-        day_plan__user=user,
-        day_plan__date__range=(today, end_date)
-    ).select_related('day_plan', 'recipe')
+        # Query all planned recipes for the user within the 7-day range
+        plans = DayPlanRecipes.objects.filter(
+            day_plan__user=user,
+            day_plan__date__range=(today, end_date)
+        ).select_related('day_plan', 'recipe').order_by('day_plan__date', 
+            Case(
+                When(recipe__meal_type='breakfast', then=Value(1)),
+                When(recipe__meal_type='lunch', then=Value(2)),
+                When(recipe__meal_type='snack', then=Value(3)),
+                When(recipe__meal_type='dinner', then=Value(4)),
+                default=Value(5),
+                output_field=IntegerField()
+            )
+        )
 
-    # Group recipes by day
-    planned_recipes = {}
-    for plan in plans:
-        plan_date = plan.day_plan.date.strftime('%Y-%m-%d')  # Convert date to string
-        if plan_date not in planned_recipes:
-            planned_recipes[plan_date] = []
-        planned_recipes[plan_date].append(RecipeSerializer(plan.recipe).data)
+        # Group recipes by day
+        planned_recipes = {}
+        for plan in plans:
+            plan_date = plan.day_plan.date.strftime('%Y-%m-%d')  # Convert date to string
+            if plan_date not in planned_recipes:
+                planned_recipes[plan_date] = []
+            planned_recipes[plan_date].append(RecipeSerializer(plan.recipe).data)
 
-    # Format the response
-    return Response({
-        "planned_recipes": planned_recipes
-    })
+        # Format the response
+        return Response({"planned_recipes": planned_recipes}, status=status.HTTP_200_OK)
+
+    
+    def patch(self, request):
+        """
+        Update a specific recipe in a specific day's meal plan.
+        """
+        user = request.user
+        day = request.data.get("day")  # Date as a string in "YYYY-MM-DD" format
+        current_recipe_id = request.data.get("current_recipe_id")
+        new_recipe_id = request.data.get("new_recipe_id")
+
+        # Validate inputs
+        if not (day and current_recipe_id and new_recipe_id):
+            return Response(
+                {"error": "Missing required parameters: day, current_recipe_id, or new_recipe_id."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Convert day to a date object
+            plan_date = datetime.strptime(day, "%Y-%m-%d").date()
+
+            # Find the day plan for the user on the given date
+            day_plan = DayPlan.objects.filter(user=user, date=plan_date).first()
+            if not day_plan:
+                return Response({"error": "No meal plan found for the specified day."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Find the specific recipe to change in the day plan
+            day_plan_recipe = DayPlanRecipes.objects.filter(day_plan=day_plan, recipe_id=current_recipe_id).first()
+            if not day_plan_recipe:
+                return Response({"error": "The specified recipe is not part of the day's meal plan."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Ensure the new recipe exists
+            new_recipe = Recipe.objects.filter(id=new_recipe_id).first()
+            if not new_recipe:
+                return Response({"error": "The specified new recipe does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Check if the new recipe is already assigned to the same day (if you want to avoid duplicates)
+            if DayPlanRecipes.objects.filter(day_plan=day_plan, recipe_id=new_recipe_id).exists():
+                return Response(
+                    {"error": "The recipe is already assigned to this day."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Change the recipe to the new one
+            day_plan_recipe.recipe = new_recipe
+            day_plan_recipe.save()
+
+            return Response({"message": "Recipe updated successfully."})
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
