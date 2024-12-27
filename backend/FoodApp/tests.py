@@ -800,6 +800,10 @@ class DayPlanRecipesTests(APITestCase):
         new_recipe = self.recipes[1]
         DayPlanRecipes.objects.create(day_plan=day_plan, recipe=current_recipe)
 
+
+
+
+
         # Send PATCH request to update recipe
         patch_data = {
             "day": today.strftime("%Y-%m-%d"),
