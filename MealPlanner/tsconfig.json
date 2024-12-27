@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "jsx": "react-native",
+    "module": "commonjs",
+    "target": "esnext",
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "node_modules/*",
+        "src/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+, "app/index.tsx"  ],
+  "extends": "expo/tsconfig.base"
+}
