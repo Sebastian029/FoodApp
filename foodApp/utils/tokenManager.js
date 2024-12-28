@@ -1,31 +1,43 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TOKEN_KEY = '@MealPlanner:token'
+const ACCESS_TOKEN_KEY = "@MealPlanner:accessToken";
+const REFRESH_TOKEN_KEY = "@MealPlanner:refreshToken";
 
 export const tokenManager = {
-  async setToken(token) {
+  async setTokens(tokens) {
     try {
-      await AsyncStorage.setItem(TOKEN_KEY, token)
+      await AsyncStorage.multiSet([
+        [ACCESS_TOKEN_KEY, tokens.access],
+        [REFRESH_TOKEN_KEY, tokens.refresh],
+      ]);
     } catch (error) {
-      console.error('Error saving token:', error)
+      console.error("Error saving tokens:", error);
     }
   },
 
-  async getToken() {
+  async getAccessToken() {
     try {
-      return await AsyncStorage.getItem(TOKEN_KEY)
+      return await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
     } catch (error) {
-      console.error('Error getting token:', error)
-      return null
+      console.error("Error getting access token:", error);
+      return null;
     }
   },
 
-  async removeToken() {
+  async getRefreshToken() {
     try {
-      await AsyncStorage.removeItem(TOKEN_KEY)
+      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
     } catch (error) {
-      console.error('Error removing token:', error)
+      console.error("Error getting refresh token:", error);
+      return null;
     }
-  }
-}
+  },
 
+  async removeTokens() {
+    try {
+      await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
+    } catch (error) {
+      console.error("Error removing tokens:", error);
+    }
+  },
+};

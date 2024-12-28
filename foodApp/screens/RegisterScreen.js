@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -51,21 +50,21 @@ export default function RegisterScreen({ navigation }) {
     >
       <View className="flex-1 p-6">
         {/* Header */}
-        <View className="items-center mt-20 mb-10">
+        <View className="items-center mt-20 mb-12">
           <Text className="text-2xl font-bold">Register an account</Text>
         </View>
 
         {/* Form */}
         <View className="space-y-4">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
             placeholder="Enter your email"
             value={email}
             onChangeText={setEmail}
@@ -74,7 +73,7 @@ export default function RegisterScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
@@ -82,7 +81,7 @@ export default function RegisterScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6" // More margin-bottom for spacing
             placeholder="Re-type your password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}

@@ -44,7 +44,33 @@ class RegisterView(APIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
+    
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request, *args, **kwargs):
+        try:
+            # Extract the refresh token from the request data
+            refresh_token = request.data.get("refresh")
+            
+            if refresh_token:
+                # Create a RefreshToken instance from the provided refresh token
+                token = RefreshToken(refresh_token)
+                
+                # Blacklist the refresh token to invalidate it
+                token.blacklist()
+                
+                # Return a success message confirming logout
+                return Response({"detail": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+            else:
+                # If the refresh token is missing, return an error message
+                return Response({"detail": "Refresh token missing."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Handle any exception that may occur (e.g., invalid or already blacklisted token)
+            return Response(
+                {"detail": "Invalid token or token already blacklisted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]

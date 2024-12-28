@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await authAPI.login({ email, password });
-      await tokenManager.setToken(response.data.token);
+      // tokenManager.setTokens is now called inside authAPI.login
       navigation.reset({
         index: 0,
         routes: [{ name: "Main" }],
@@ -41,10 +41,10 @@ export default function LoginScreen({ navigation }) {
     >
       <View className="flex-1 p-6">
         {/* Logo and Welcome */}
-        <View className="items-center mt-20 mb-10">
+        <View className="items-center mt-20 mb-12">
           <Image
             source={require("../assets/logo.png")}
-            className="w-32 h-32 mb-4"
+            className="w-40 h-40 mb-6" // Increased size of the logo
           />
           <Text className="text-2xl font-bold">Welcome</Text>
         </View>
@@ -52,7 +52,7 @@ export default function LoginScreen({ navigation }) {
         {/* Form */}
         <View className="space-y-4">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4" // Added margin-bottom
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6" // Added more margin-bottom for spacing
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
@@ -77,7 +77,7 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
-            className="bg-[#F5A623] p-4 rounded-full shadow-lg"
+            className="bg-[#F5A623] p-4 rounded-full shadow-lg mt-6" // Added spacing before button
             style={shadows.default}
           >
             <Text className="text-center text-white font-semibold text-lg">
