@@ -22,13 +22,13 @@ export interface AuthResponse {
 
 export const authService = {
   async login(data: LoginData): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>("/auth/login", data);
+    const response = await axios.post<AuthResponse>("/login", data);
     await this.saveTokens(response.data);
     return response.data;
   },
 
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>("/auth/register", data);
+    const response = await axios.post<AuthResponse>("/register", data);
     await this.saveTokens(response.data);
     return response.data;
   },

@@ -82,7 +82,7 @@ export function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={{ color: colors.text.secondary }}>
-            Don't have an account?{" "}
+            Don't have an account?
           </Text>
           <Pressable onPress={() => navigation.navigate("Register")}>
             <Text style={{ color: colors.primary, fontWeight: "500" }}>

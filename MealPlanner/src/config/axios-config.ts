@@ -1,53 +1,57 @@
-import axios from 'axios'
-import * as SecureStore from 'expo-secure-store'
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
 
-export const BASE_URL = 'https://api.yourbackend.com' // Replace with your API URL
+export const BASE_URL = "http://192.168.0.177/api"; // Replace with your API URL
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-})
+});
 
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('accessToken')
+    const token = await SecureStore.getItemAsync("accessToken");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config
+    const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
+      originalRequest._retry = true;
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken')
-        const response = await axiosInstance.post('/auth/refresh', { refreshToken })
-        
-        await SecureStore.setItemAsync('accessToken', response.data.accessToken)
-        
-        originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`
-        return axiosInstance(originalRequest)
+        const refreshToken = await SecureStore.getItemAsync("refreshToken");
+        const response = await axiosInstance.post("/token/refresh", {
+          refreshToken,
+        });
+
+        await SecureStore.setItemAsync(
+          "accessToken",
+          response.data.accessToken
+        );
+
+        originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+        return axiosInstance(originalRequest);
       } catch (refreshError) {
-        await SecureStore.deleteItemAsync('accessToken')
-        await SecureStore.deleteItemAsync('refreshToken')
-        throw refreshError
+        await SecureStore.deleteItemAsync("accessToken");
+        await SecureStore.deleteItemAsync("refreshToken");
+        throw refreshError;
       }
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
-export default axiosInstance
-
+export default axiosInstance;

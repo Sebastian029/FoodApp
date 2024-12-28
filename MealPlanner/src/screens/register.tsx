@@ -65,7 +65,7 @@ export function RegisterScreen() {
         />
 
         <Pressable
-          style={[styles.button, isLoading && styles.buttonDisabled]}
+          style={[styles.button]}
           onPress={handleRegister}
           disabled={isLoading}
         >
