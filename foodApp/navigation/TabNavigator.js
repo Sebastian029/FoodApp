@@ -3,6 +3,7 @@ import { Home, Calendar, User, ShoppingCart } from "react-native-feather";
 import HomeScreen from "../screens/HomeScreen";
 import PlannerScreen from "../screens/PlannerScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import CartScreen from "../screens/CartScreen";
 import { colors } from "../styles/theme";
 
 const Tab = createBottomTabNavigator();
@@ -40,7 +41,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Cart"
-        component={ProfileScreen}
+        component={CartScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <ShoppingCart stroke={color} width={size} height={size} />

@@ -155,3 +155,12 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = "api.User"
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.wp.pl'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'inz_2024@wp.pl'  # Your WP.pl email address
+EMAIL_HOST_PASSWORD = 'Django_inz_password'  # Your WP.pl email password
+DEFAULT_FROM_EMAIL = 'inz_2024@wp.pl'  # This is the email that will appear in the "From" field
