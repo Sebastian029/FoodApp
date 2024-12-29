@@ -1,19 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
+
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { tokenManager } from "../utils/tokenManager";
 import { authAPI } from "../utils/api";
 import { useNavigation } from "@react-navigation/native";
 
 export default function ProfileScreen() {
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleLogout = async () => {
     try {
       setLoading(true);
       await authAPI.logout();
+
       navigation.reset({
         index: 0,
-        routes: [{ name: "Login" }],
+        routes: [{ name: "Auth" }],
       });
     } catch (error) {
       Alert.alert("Error", error.response?.data?.message || "Failed to logout");

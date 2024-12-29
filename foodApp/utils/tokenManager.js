@@ -26,7 +26,8 @@ export const tokenManager = {
 
   async getRefreshToken() {
     try {
-      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      return refreshToken;
     } catch (error) {
       console.error("Error getting refresh token:", error);
       return null;

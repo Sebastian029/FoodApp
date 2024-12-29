@@ -22,7 +22,6 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await authAPI.login({ email, password });
-      // tokenManager.setTokens is now called inside authAPI.login
       navigation.reset({
         index: 0,
         routes: [{ name: "Main" }],
