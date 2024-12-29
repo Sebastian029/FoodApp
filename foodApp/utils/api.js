@@ -1,16 +1,15 @@
 import axios from "axios";
 import { tokenManager } from "./tokenManager";
 
-const BASE_URL = "YOUR_API_URL";
+const BASE_URL = "http://192.168.0.177:8000/api";
 
 const api = axios.create({
-  baseURL: "http://192.168.0.177:8000/api",
+  baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Create a separate instance for refresh token requests
 const refreshApi = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -18,7 +17,6 @@ const refreshApi = axios.create({
   },
 });
 
-// Track if we're refreshing the token
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -33,7 +31,6 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Add token to requests
 api.interceptors.request.use(async (config) => {
   const token = await tokenManager.getAccessToken();
   if (token) {
@@ -42,19 +39,16 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is not 401 or request has already been retried, reject
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
     if (isRefreshing) {
-      // If we're already refreshing, queue this request
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       })
@@ -77,7 +71,6 @@ api.interceptors.response.use(
       const { access } = response.data;
       await tokenManager.setTokens({ access, refresh: refreshToken });
 
-      // Update authorization header
       api.defaults.headers.common.Authorization = `Bearer ${access}`;
       originalRequest.headers.Authorization = `Bearer ${access}`;
 
@@ -86,7 +79,6 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       await tokenManager.removeTokens();
-      // You might want to navigate to login screen here
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
@@ -109,11 +101,9 @@ export const authAPI = {
     try {
       const refreshToken = await tokenManager.getRefreshToken();
 
-      // If a refresh token exists, send it in the POST request
       if (refreshToken) {
         const response = await api.post("/logout/", { refresh: refreshToken });
 
-        // Remove tokens from storage after logout
         await tokenManager.removeTokens();
 
         return response;
