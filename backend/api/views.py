@@ -505,12 +505,14 @@ class WeeklyMealPlanView(APIView):
         """
         Create or update a weekly meal plan for the user.
         """
+        
         user = request.user  # Get the logged-in user
+        plan_meals_for_week(user)
         today = datetime.today().date()
 
         # Initialize response data
         weekly_plan = []
-
+        
         # Loop through the next 7 days
         for i in range(7):
             plan_date = today + timedelta(days=i)
@@ -625,3 +627,17 @@ class WeeklyMealPlanView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class ResetMealPlansView(APIView):
+    """
+    Deletes all recipes and day plans from the database.
+    """
+
+    def delete(self, request):
+        # Delete all related data
+        DayPlanRecipes.objects.all().delete()
+        DayPlan.objects.all().delete()
+    
+
+        return Response({"message": "All meal plans deleted successfully."}, status=status.HTTP_200_OK)

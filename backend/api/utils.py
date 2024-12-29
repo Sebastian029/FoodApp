@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 import csv
 from django.db import transaction
 
+
 # api/utils.py
 from datetime import datetime, timedelta
 from .models import DayPlan, DayPlanRecipes, UserRecipeUsage
@@ -64,15 +65,21 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     # Get list of disliked ingredients for the user
     disliked_ingredients = DislikedIngredients.objects.filter(user=user).values_list('ingredient_id', flat=True)
 
-    # Query recipes, excluding those that contain disliked ingredients
+    # Query recipes, excluding those with disliked ingredients and excluded IDs
     recipes = Recipe.objects.exclude(
         recipeingredients__ingredient__in=disliked_ingredients
+    ).exclude(
+        id__in=excluded_ids  # Exclude recipes with IDs in excluded_ids
     ).values(
         'id', 'title', 'total_calories', 'sugars', 'protein', 'iron', 'potassium', 'meal_type'
     )
 
     # Convert recipes into a pandas DataFrame
     df = pd.DataFrame(list(recipes))
+
+    # If no recipes are available after filtering, return an empty QuerySet
+    if df.empty:
+        return Recipe.objects.none()
 
     # Convert string fields to numeric for calculations
     for field in ['total_calories', 'sugars', 'protein', 'iron', 'potassium']:
@@ -123,6 +130,9 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
 
     # Return the selected meals
     return selected_meals
+
+
+    
 
 
 
@@ -185,3 +195,5 @@ def upload_recipes_from_csv(file_path):
         return True, 'Recipes uploaded successfully!'
     except Exception as e:
         return False, str(e)
+    
+    
