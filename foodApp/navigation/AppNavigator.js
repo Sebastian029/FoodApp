@@ -5,6 +5,7 @@ import RegisterScreen from "../screens/RegisterScreen";
 import TabNavigator from "./TabNavigator";
 import RecipeListScreen from "../screens/RecipeListScreen";
 import RecipeDetailScreen from "../screens/RecipeDetailScreen";
+import DietRestrictionsScreen from "../screens/DietRestrictionsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +17,10 @@ export default function AppNavigator() {
         <Stack.Screen name="Main" component={TabNavigator} />
         <Stack.Screen name="RecipeList" component={RecipeListScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+        <Stack.Screen
+          name="DietRestrictions"
+          component={DietRestrictionsScreen}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

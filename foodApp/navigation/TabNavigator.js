@@ -2,8 +2,9 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Home, Calendar, User, ShoppingCart } from "react-native-feather";
 import HomeScreen from "../screens/HomeScreen";
 import PlannerScreen from "../screens/PlannerScreen";
-import ProfileScreen from "../screens/ProfileScreen";
 import CartScreen from "../screens/CartScreen";
+import UserPreferencesScreen from "../screens/UserPreferencesScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 import { colors } from "../styles/theme";
 
 const Tab = createBottomTabNavigator();
@@ -18,7 +19,6 @@ export default function TabNavigator() {
           paddingBottom: 5,
           paddingTop: 5,
         },
-        headerShown: false,
       }}
     >
       <Tab.Screen
@@ -45,6 +45,15 @@ export default function TabNavigator() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <ShoppingCart stroke={color} width={size} height={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Preferences"
+        component={UserPreferencesScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <User stroke={color} width={size} height={size} />
           ),
         }}
       />

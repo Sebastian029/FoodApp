@@ -100,6 +100,11 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '_all__'
+        
+class AllIngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name']  # This is correct; use a list
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
     ingredient = IngredientSerializer()  # Serialize the Ingredient model
@@ -169,14 +174,13 @@ class RatedRecipesSerializer(serializers.ModelSerializer):
         model = RatedRecipes
         fields = '__all__'
 
-class UserWeightSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserWeight
-        fields = '__all__'
-
 
 class UserIngredientsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserIngredients
         fields = '__all__'
 
+class UserWeightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserWeight
+        fields = ['id',  'weight', 'date']

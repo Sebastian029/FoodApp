@@ -23,7 +23,7 @@ from .serializers import (
     RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
     UserIngredientsSerializer, UserNutrientPreferencesSerializer,
-    CartSerializer, IngredientSerializer
+    CartSerializer, IngredientSerializer, AllIngredientSerializer
 )
 from .utils import  upload_recipes_from_csv, plan_meals_for_week
 
@@ -114,8 +114,8 @@ class UserNutrientPreferencesView(APIView):
 # Ingredient Views
 class IngredientListCreateView(generics.ListCreateAPIView):
     queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    
+    serializer_class = AllIngredientSerializer
+  
     
     
 class UserDislikedIngredientsView(APIView):
@@ -213,6 +213,16 @@ class UpdateWeightView(APIView):
             serializer.save(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserWeightListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Fetch all weight entries for the authenticated user
+        user_weights = UserWeight.objects.filter(user=user).order_by('-date')  # Optionally order by date
+        serializer = UserWeightSerializer(user_weights, many=True)
+        return Response(serializer.data)
     
 class CanUpdateWeightView(APIView):
     permission_classes = [IsAuthenticated]  
