@@ -55,9 +55,6 @@ const MealItem = ({ recipe, onRefresh, onPress }) => (
       </Text>
     </View>
     <View className="flex-row items-center">
-      <TouchableOpacity onPress={onRefresh} className="p-2 mr-2">
-        <RotateCcw size={20} stroke="#666" />
-      </TouchableOpacity>
       <ChevronRight size={20} stroke="#666" />
     </View>
   </TouchableOpacity>
@@ -176,6 +173,7 @@ export default function PlannerScreen({ navigation }) {
                       onPress={() =>
                         navigation.navigate("RecipeDetail", {
                           recipeId: recipe.id,
+                          fromPlanner: true,
                         })
                       }
                     />

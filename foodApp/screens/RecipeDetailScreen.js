@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
-  Share,
+  Modal,
+  Button,
 } from "react-native";
 import { ArrowLeft, Share2, Plus, Check } from "react-native-feather";
 import api from "../utils/api";
@@ -99,6 +100,14 @@ export default function RecipeDetailScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [confirmationMessage, setConfirmationMessage] = useState(null);
   const [addedIngredients, setAddedIngredients] = useState(new Set());
+  const [weeklyPlan, setWeeklyPlan] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [newRecipeId, setNewRecipeId] = useState(null);
+  const [clicked, setClicked] = useState(false);
+
+  const isFromPlanner = route?.params?.fromPlanner;
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -112,7 +121,17 @@ export default function RecipeDetailScreen({ navigation, route }) {
       }
     };
 
+    const fetchWeeklyPlan = async () => {
+      try {
+        const response = await api.post("/weekly-meal-plan/");
+        setWeeklyPlan(response.data.weekly_plan);
+      } catch (error) {
+        console.error("Error fetching weekly meal plan:", error);
+      }
+    };
+
     fetchRecipe();
+    fetchWeeklyPlan();
   }, [route.params.recipeId]);
 
   const addIngredientToCart = async (ingredientName, amount, unit) => {
@@ -133,6 +152,43 @@ export default function RecipeDetailScreen({ navigation, route }) {
       setConfirmationMessage("Error adding ingredient to cart.");
     }
   };
+  const formatDate = (date) => {
+    return new Date(date).toISOString().split("T")[0];
+  };
+
+  const handleSaveRecipeChange = async () => {
+    if (!selectedDay || !selectedRecipe || !newRecipeId) {
+      console.error("Please select a day, recipe, and new recipe.");
+      return;
+    }
+
+    // Format the date correctly if needed
+    const formattedDate = new Date(selectedDay).toISOString().split("T")[0]; // YYYY-MM-DD format
+
+    console.log(formattedDate);
+    console.log(selectedRecipe.id);
+    console.log(newRecipeId);
+
+    try {
+      const response = await api.patch("/weekly-meal-plan/", {
+        day: formattedDate, // Using 'day' as the API expects
+        current_recipe_id: selectedRecipe.id,
+        new_recipe_id: newRecipeId,
+      });
+
+      console.log("Recipe changed successfully:", response.data);
+      setModalVisible(false);
+    } catch (error) {
+      console.error(
+        "Error saving recipe change:",
+        error.response ? error.response.data : error
+      );
+    }
+  };
+
+  const preparationSteps = recipe?.preparation_guide
+    ? recipe.preparation_guide.split(/\d+\./).filter(Boolean)
+    : [];
 
   if (loading) {
     return (
@@ -141,14 +197,33 @@ export default function RecipeDetailScreen({ navigation, route }) {
       </View>
     );
   }
+  const addAllIngredientsToCart = async () => {
+    if (!clicked) {
+      setClicked(true);
+      try {
+        if (!recipe || !recipe.id) {
+          console.error("Recipe ID is not available.");
+          return;
+        }
 
-  const preparationSteps = recipe.preparation_guide
-    ? recipe.preparation_guide.split(/\d+\./).filter(Boolean)
-    : [];
+        const response = await api.post("/cart/", {
+          recipe_id: recipe.id,
+        });
 
+        setAddedIngredients(
+          new Set(
+            recipe.ingredients.map((ingredient) => ingredient.ingredient_name)
+          )
+        );
+        setConfirmationMessage("All ingredients added to cart!");
+      } catch (error) {
+        console.error("Error adding all ingredients to cart:", error);
+        setConfirmationMessage("Error adding all ingredients to cart.");
+      }
+    }
+  };
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header with wave */}
       <View className="relative">
         <View
           className="absolute w-full px-4 flex-row justify-between items-center"
@@ -195,7 +270,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
           </View>
 
           {/* Ingredients */}
-          <View className="bg-white rounded-xl p-4 mb-6">
+          <View className="bg-white rounded-xl p-4 mb-0">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-2xl font-semibold text-[#2D3748]">
                 Ingredients
@@ -215,6 +290,20 @@ export default function RecipeDetailScreen({ navigation, route }) {
             ) : (
               <Text className="text-gray-500">No ingredients listed.</Text>
             )}
+            <TouchableOpacity
+              className="flex-row items-center p-2 rounded-full"
+              style={{
+                width: "50%",
+                backgroundColor: clicked ? "#d3d3d3" : "#F5A623", // Change to gray when clicked
+              }}
+              onPress={addAllIngredientsToCart}
+              disabled={clicked} // Disable the button when clicked
+            >
+              <Plus stroke="#fff" size={16} />
+              <Text className="text-white text-center font-semibold ml-2 text-sm">
+                Add All Ingredients
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Preparation */}
@@ -228,7 +317,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
                   <Text className="text-gray-800">
                     <Text className="font-bold text-[#F5A623]">{`${
                       index + 1
-                    }.`}</Text>{" "}
+                    }.`}</Text>
                     {step.trim()}
                   </Text>
                 </View>
@@ -239,8 +328,140 @@ export default function RecipeDetailScreen({ navigation, route }) {
               </Text>
             )}
           </View>
+
+          {/* Change Recipe Button */}
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            className={`p-3 rounded-full mt-6 ${
+              isFromPlanner ? "bg-gray-400" : "bg-[#F5A623]"
+            }`}
+            disabled={isFromPlanner}
+          >
+            <Text className="text-white text-center font-semibold">
+              Change Recipe
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal for selecting day and recipe */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-white p-6 rounded-lg shadow-lg pt-12">
+          {/* Added pt-12 to move content lower */}
+          <Text className="text-2xl font-semibold text-[#2D3748]">
+            Select a Day and Recipe
+          </Text>
+          {/* Vertical Scroll for Modal Content */}
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            className="w-full"
+          >
+            <View className="mt-6">
+              <Text className="text-lg font-medium text-[#2D3748]">
+                Choose Day:
+              </Text>
+
+              {/* Horizontal Scroll for Dates */}
+              <ScrollView
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                className="mt-4"
+              >
+                {weeklyPlan.map((plan, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setSelectedDay(plan.date)}
+                    className="py-3 px-4 mx-2 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F5F5]"
+                  >
+                    <Text
+                      className={`${
+                        selectedDay === plan.date
+                          ? "text-[#F5A623] font-semibold"
+                          : "text-[#2D3748]"
+                      }`}
+                    >
+                      {plan.date}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View className="mt-6">
+              <Text className="text-lg font-medium text-[#2D3748]">
+                Choose Recipe to Replace:
+              </Text>
+              {selectedDay &&
+                weeklyPlan
+                  .find((plan) => plan.date === selectedDay)
+                  ?.recipes.map((recipe) => (
+                    <TouchableOpacity
+                      key={recipe.id}
+                      onPress={() => setSelectedRecipe(recipe)}
+                      className="py-3 px-4 my-2 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F5F5]"
+                    >
+                      <Text
+                        className={`${
+                          selectedRecipe?.id === recipe.id
+                            ? "text-[#F5A623] font-semibold"
+                            : "text-[#2D3748]"
+                        }`}
+                      >
+                        {recipe.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+            </View>
+
+            <View className="mt-6">
+              <Text className="text-lg font-medium text-[#2D3748]">
+                Choose New Recipe:
+              </Text>
+              {recipe && (
+                <TouchableOpacity
+                  onPress={() => setNewRecipeId(recipe.id)}
+                  className="py-3 px-4 my-2 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F5F5]"
+                >
+                  <Text
+                    className={`${
+                      newRecipeId === recipe.id
+                        ? "text-[#F5A623] font-semibold"
+                        : "text-[#2D3748]"
+                    }`}
+                  >
+                    {recipe.title}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Buttons Section */}
+            <View className="flex-row justify-between mt-8">
+              {/* Save Button */}
+              <TouchableOpacity
+                onPress={handleSaveRecipeChange}
+                className="w-1/2 bg-[#F5A623] rounded-lg py-3 px-6 items-center justify-center"
+              >
+                <Text className="text-white font-semibold text-lg">Save</Text>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                className="w-1/2 bg-white border border-[#CBD5E0] rounded-lg py-3 px-6 items-center justify-center"
+              >
+                <Text className="text-[#2D3748] font-semibold text-lg">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
