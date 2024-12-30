@@ -23,7 +23,7 @@ from .serializers import (
     RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
     UserIngredientsSerializer, UserNutrientPreferencesSerializer,
-    CartSerializer, IngredientSerializer, AllIngredientSerializer
+    CartSerializer, IngredientSerializer, AllIngredientSerializer, DietTypeSerializer
 )
 from .utils import  upload_recipes_from_csv, plan_meals_for_week
 
@@ -651,3 +651,21 @@ class ResetMealPlansView(APIView):
     
 
         return Response({"message": "All meal plans deleted successfully."}, status=status.HTTP_200_OK)
+    
+    
+    
+class DietTypeView(generics.RetrieveUpdateAPIView):
+    serializer_class = DietTypeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        # Ensure each user can only access their preferences
+        return UserNutrientPreferences.objects.get_or_create(user=self.request.user)[0]
+    
+class DietChoicesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Send the diet choices as a list of values
+        diet_choices = dict(UserNutrientPreferences.DIET_CHOICES)
+        return Response(diet_choices)

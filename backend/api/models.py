@@ -21,6 +21,7 @@ class Recipe(models.Model):
     preparation_guide = models.TextField()
     meal_type = models.CharField(max_length=255)
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredients')
+
     
     def __str__(self):
         return self.title
@@ -89,7 +90,16 @@ class CartIngredient(models.Model):
         return f"{self.quantity} {self.unit} of {self.ingredient.name}"
     
 class UserNutrientPreferences(models.Model):
+    DIET_CHOICES = [
+        ('keto', 'Keto'),
+        ('vegan', 'Vegan'),
+        ('vegetarian', 'Vegetarian'),
+        ('high_protein', 'High Protein'),
+        ('balanced', 'Balanced'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    diet_type = models.CharField(max_length=20, choices=DIET_CHOICES, default='balanced')
     min_calories = models.IntegerField(null=True, blank=True)
     max_calories = models.IntegerField(null=True, blank=True)
     min_sugars = models.IntegerField(null=True, blank=True)
@@ -102,7 +112,8 @@ class UserNutrientPreferences(models.Model):
     max_potassium = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"Nutrients for {self.user}"
+        return f"Nutrients for {self.user} ({self.get_diet_type_display()})"
+
 
 
 

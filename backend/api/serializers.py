@@ -184,3 +184,14 @@ class UserWeightSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserWeight
         fields = ['id',  'weight', 'date']
+        
+
+class DietTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNutrientPreferences
+        fields = ['diet_type']
+
+    def validate_diet_type(self, value):
+        if value not in dict(UserNutrientPreferences.DIET_CHOICES):
+            raise serializers.ValidationError("Invalid diet type.")
+        return value

@@ -7,8 +7,11 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  Modal,
+  Pressable,
 } from "react-native";
 import { ArrowLeft, HelpCircle, ChevronRight } from "react-native-feather";
+import { SelectList } from "react-native-dropdown-select-list";
 import api from "../utils/api";
 
 export default function DietRestrictionsScreen({ navigation }) {
@@ -20,6 +23,9 @@ export default function DietRestrictionsScreen({ navigation }) {
     potassium: { min: "", max: "" },
   });
   const [loading, setLoading] = useState(false);
+  const [dietTypes, setDietTypes] = useState([]);
+  const [selectedDietType, setSelectedDietType] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchDietRestrictions = async () => {
     try {
@@ -56,6 +62,32 @@ export default function DietRestrictionsScreen({ navigation }) {
     }
   };
 
+  const fetchDietTypes = async () => {
+    try {
+      const response = await api.get("/diet-choices/");
+      const dietChoices = response.data;
+      setDietTypes(
+        Object.entries(dietChoices).map(([key, value]) => ({
+          key,
+          value,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching diet types:", error);
+      Alert.alert("Error", "Failed to load diet types.");
+    }
+  };
+
+  const fetchSelectedDietType = async () => {
+    try {
+      const response = await api.get("/diet-type/");
+      setSelectedDietType(response.data.diet_type);
+    } catch (error) {
+      console.error("Error fetching selected diet type:", error);
+      Alert.alert("Error", "Failed to load selected diet type.");
+    }
+  };
+
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -76,6 +108,34 @@ export default function DietRestrictionsScreen({ navigation }) {
     } catch (error) {
       console.error("Error saving diet restrictions:", error);
       Alert.alert("Error", "Failed to save diet restrictions.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDietTypeChange = async (selected) => {
+    try {
+      setLoading(true);
+      let validDietType = selected.toLowerCase();
+      if (validDietType === "high protein") {
+        validDietType = "high_protein";
+      }
+      const response = await api.put("/diet-type/", {
+        diet_type: validDietType,
+      });
+      setSelectedDietType(selected);
+      setModalVisible(false);
+    } catch (error) {
+      console.error(
+        "Error saving diet type:",
+        error.response?.data || error.message
+      );
+      Alert.alert(
+        "Error",
+        `Failed to save diet type: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -124,6 +184,8 @@ export default function DietRestrictionsScreen({ navigation }) {
 
   useEffect(() => {
     fetchDietRestrictions();
+    fetchDietTypes();
+    fetchSelectedDietType();
   }, []);
 
   return (
@@ -149,8 +211,11 @@ export default function DietRestrictionsScreen({ navigation }) {
         {renderInput("Potassium (mg)", "potassium")}
 
         {/* Diet Type Section */}
-        <TouchableOpacity className="flex-row justify-between items-center p-4 bg-gray-50 rounded-lg mb-4">
-          <Text className="text-[#2D3748]">Your diet type</Text>
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          className="flex-row justify-between items-center p-4 bg-gray-50 rounded-lg mb-4"
+        >
+          <Text className="text-[#2D3748]">{`Your diet type: ${selectedDietType}`}</Text>
           <ChevronRight stroke="#666" size={20} />
         </TouchableOpacity>
 
@@ -176,6 +241,34 @@ export default function DietRestrictionsScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal for selecting diet type */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white p-4 rounded-lg w-80">
+            <Text className="text-xl mb-4">Select your diet type</Text>
+            <SelectList
+              setSelected={handleDietTypeChange}
+              data={dietTypes}
+              save="value"
+              search={false}
+              placeholder="Select Diet Type"
+              defaultOption={selectedDietType}
+            />
+            <Pressable
+              onPress={() => setModalVisible(false)}
+              className="mt-4 p-4 bg-gray-300 rounded-lg"
+            >
+              <Text className="text-center">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

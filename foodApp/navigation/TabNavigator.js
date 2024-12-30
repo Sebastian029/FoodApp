@@ -19,6 +19,7 @@ export default function TabNavigator() {
           paddingBottom: 5,
           paddingTop: 5,
         },
+        headerShown: false,
       }}
     >
       <Tab.Screen
