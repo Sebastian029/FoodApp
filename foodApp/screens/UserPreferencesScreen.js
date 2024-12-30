@@ -148,7 +148,7 @@ export default function UserPreferencesScreen({ navigation }) {
               disabled={!canUpdateWeight}
               className={`p-4 rounded-lg ${
                 canUpdateWeight ? "bg-[#2D3748]" : "bg-gray-200"
-              }`}
+              } mt-4`}
             >
               <Text className="text-white text-center font-semibold">Save</Text>
             </TouchableOpacity>

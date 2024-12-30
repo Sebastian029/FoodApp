@@ -6,6 +6,7 @@ import TabNavigator from "./TabNavigator";
 import RecipeListScreen from "../screens/RecipeListScreen";
 import RecipeDetailScreen from "../screens/RecipeDetailScreen";
 import DietRestrictionsScreen from "../screens/DietRestrictionsScreen";
+import BlockedIngredientsScreen from "../screens/BlockedIngredientScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,10 @@ export default function AppNavigator() {
         <Stack.Screen
           name="DietRestrictions"
           component={DietRestrictionsScreen}
+        />
+        <Stack.Screen
+          name="BlockedIngredients"
+          component={BlockedIngredientsScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -125,7 +125,7 @@ class UserDislikedIngredientsView(APIView):
         user = request.user
         disliked_ingredients = DislikedIngredients.objects.filter(user=user)
         ingredients = [item.ingredient for item in disliked_ingredients]
-        serializer = IngredientSerializer(ingredients, many=True)
+        serializer = AllIngredientSerializer(ingredients, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
