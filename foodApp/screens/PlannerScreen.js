@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -70,6 +71,8 @@ export default function PlannerScreen({ navigation }) {
   const fetchWeeklyPlan = async () => {
     try {
       setLoading(true);
+      setWeeklyPlan([]); // Reset state before fetching
+      setSelectedDate(null);
       const response = await api.post("/weekly-meal-plan/");
       setWeeklyPlan(response.data.weekly_plan);
       setSelectedDate(response.data.weekly_plan[0]?.date);
@@ -80,9 +83,11 @@ export default function PlannerScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchWeeklyPlan();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWeeklyPlan();
+    }, [])
+  );
 
   const selectedDayPlan = weeklyPlan.find((day) => day.date === selectedDate);
 

@@ -23,7 +23,7 @@ from .serializers import (
     RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
     RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
     UserIngredientsSerializer, UserNutrientPreferencesSerializer,
-    CartSerializer, IngredientSerializer, AllIngredientSerializer, DietTypeSerializer
+    CartSerializer, IngredientSerializer, AllIngredientSerializer, DietTypeSerializer, RecipeSerializerShort
 )
 from .utils import  upload_recipes_from_csv, plan_meals_for_week
 
@@ -176,7 +176,7 @@ class RecipeTypeView(APIView):
             recipes = Recipe.objects.all()
         
         # Serialize the filtered (or all) recipes
-        serializer = RecipeSerializer(recipes, many=True)
+        serializer = RecipeSerializerShort(recipes, many=True)
         
         # Return the response
         return Response(serializer.data)
@@ -538,6 +538,7 @@ class WeeklyMealPlanView(APIView):
                     'title': recipe.recipe.title,
                     'meal_type': recipe.recipe.meal_type,
                     'total_calories': recipe.recipe.total_calories,
+                    'description':recipe.recipe.description,
                 }
                 for recipe in recipes
             ]

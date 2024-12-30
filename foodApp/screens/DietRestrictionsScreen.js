@@ -141,9 +141,41 @@ export default function DietRestrictionsScreen({ navigation }) {
     }
   };
 
+  const handleResetMealPlans = async () => {
+    Alert.alert(
+      "Reset Meal Plans",
+      "Are you sure you want to reset all your planned meals? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await api.delete("/reset-meal-plans/");
+              Alert.alert(
+                "Success",
+                "Meal plans have been reset successfully."
+              );
+            } catch (error) {
+              console.error("Error resetting meal plans:", error);
+              Alert.alert("Error", "Failed to reset meal plans.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderInput = (label, field) => (
-    <View className="mb-6">
-      <View className="flex-row justify-between items-center mb-2">
+    <View className="mb-4">
+      <View className="flex-row justify-between items-center mb-1">
         <Text className="text-[#2D3748]">{label}</Text>
         <TouchableOpacity>
           <HelpCircle size={20} stroke="#666" />
@@ -152,7 +184,7 @@ export default function DietRestrictionsScreen({ navigation }) {
       <View className="flex-row space-x-4">
         <View className="flex-1">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-3 rounded-lg border border-gray-200"
             placeholder="Min"
             value={restrictions[field].min}
             onChangeText={(text) =>
@@ -166,7 +198,7 @@ export default function DietRestrictionsScreen({ navigation }) {
         </View>
         <View className="flex-1">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            className="bg-gray-50 p-3 rounded-lg border border-gray-200"
             placeholder="Max"
             value={restrictions[field].max}
             onChangeText={(text) =>
@@ -226,6 +258,16 @@ export default function DietRestrictionsScreen({ navigation }) {
         >
           <Text className="text-[#2D3748]">Blocked ingredients</Text>
           <ChevronRight stroke="#666" size={20} />
+        </TouchableOpacity>
+
+        {/* Reset Meal Plans Button */}
+        <TouchableOpacity
+          onPress={handleResetMealPlans}
+          disabled={loading}
+          className="flex-row justify-between items-center p-4 bg-red-50 rounded-lg mb-6"
+        >
+          <Text className="text-red-600">Reset planned meals</Text>
+          <ChevronRight stroke="#DC2626" size={20} />
         </TouchableOpacity>
 
         {/* Save Button */}

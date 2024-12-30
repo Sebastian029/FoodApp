@@ -135,6 +135,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         
         return ingredient_data
 
+class RecipeSerializerShort(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ['id', 'title', 'description',]
+
 class CartIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartIngredient

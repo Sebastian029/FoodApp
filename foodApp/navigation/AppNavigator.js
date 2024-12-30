@@ -21,6 +21,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="DietRestrictions"
           component={DietRestrictionsScreen}
+          screenOptions={{ headerShown: false }}
         />
         <Stack.Screen
           name="BlockedIngredients"
