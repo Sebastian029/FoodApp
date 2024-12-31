@@ -4,7 +4,6 @@ import HomeScreen from "../screens/HomeScreen";
 import PlannerScreen from "../screens/PlannerScreen";
 import CartScreen from "../screens/CartScreen";
 import UserPreferencesScreen from "../screens/UserPreferencesScreen";
-import ProfileScreen from "../screens/ProfileScreen";
 import { colors } from "../styles/theme";
 
 const Tab = createBottomTabNavigator();
@@ -52,15 +51,6 @@ export default function TabNavigator() {
       <Tab.Screen
         name="Preferences"
         component={UserPreferencesScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <User stroke={color} width={size} height={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <User stroke={color} width={size} height={size} />

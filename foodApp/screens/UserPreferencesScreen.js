@@ -10,10 +10,11 @@ import {
   SafeAreaView,
   Dimensions,
 } from "react-native";
-import { ChevronRight } from "react-native-feather";
+import { ChevronRight, LogOut } from "react-native-feather";
 import { format } from "date-fns";
 import { LineChart } from "react-native-chart-kit";
 import api from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -22,6 +23,8 @@ export default function UserPreferencesScreen({ navigation }) {
   const [canUpdateWeight, setCanUpdateWeight] = useState(false);
   const [weightHistory, setWeightHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const { logout } = useAuth();
 
   const checkCanUpdateWeight = async () => {
     try {
@@ -35,9 +38,7 @@ export default function UserPreferencesScreen({ navigation }) {
   const fetchWeightHistory = async () => {
     try {
       const response = await api.get("/weights/");
-      // Sort the data by 'id' field
-      const sortedData = response.data.sort((a, b) => a.id - b.id);
-      setWeightHistory(sortedData);
+      setWeightHistory(response.data);
     } catch (error) {
       console.error("Error fetching weight history:", error);
     }
@@ -68,6 +69,29 @@ export default function UserPreferencesScreen({ navigation }) {
     } catch (error) {
       Alert.alert("Error", "Failed to update weight");
     }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setLoggingOut(true);
+            await logout();
+          } catch (error) {
+            Alert.alert("Error", "Failed to logout");
+          } finally {
+            setLoggingOut(false);
+          }
+        },
+      },
+    ]);
   };
 
   const chartConfig = {
@@ -108,83 +132,106 @@ export default function UserPreferencesScreen({ navigation }) {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 px-4">
-        {/* Navigation Buttons */}
-        <View className="py-4 space-y-4">
-          <TouchableOpacity
-            onPress={() => navigation.navigate("DietRestrictions")}
-            className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm"
-          >
-            <Text className="text-lg text-[#2D3748]">
-              Update diet restrictions
-            </Text>
-            <ChevronRight stroke="#666" size={20} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Weight Update Section */}
-        <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
-          <Text className="text-xl font-semibold text-[#2D3748] mb-4">
-            Update weekly weight
-          </Text>
-          <View className="space-y-4">
-            <View>
-              <Text className="text-gray-600 mb-2">Weight</Text>
-              <TextInput
-                className={`bg-gray-50 p-4 rounded-lg border ${
-                  canUpdateWeight
-                    ? "border-gray-200"
-                    : "border-gray-100 bg-gray-100"
-                }`}
-                placeholder="Enter weight in kg"
-                value={weight}
-                onChangeText={setWeight}
-                keyboardType="numeric"
-                editable={canUpdateWeight}
-              />
-            </View>
+      <View className="flex-1">
+        <ScrollView className="flex-1 px-4">
+          {/* Navigation Buttons */}
+          <View className="py-4">
             <TouchableOpacity
-              onPress={handleUpdateWeight}
-              disabled={!canUpdateWeight}
-              className={`p-4 rounded-lg ${
-                canUpdateWeight ? "bg-[#2D3748]" : "bg-gray-200"
-              } mt-4`}
+              onPress={() => navigation.navigate("DietRestrictions")}
+              className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm"
             >
-              <Text className="text-white text-center font-semibold">Save</Text>
+              <Text className="text-lg text-[#2D3748]">
+                Update diet restrictions
+              </Text>
+              <ChevronRight stroke="#666" size={20} />
+            </TouchableOpacity>
+            <View className="h-4" /> {/* Spacing between buttons */}
+            <TouchableOpacity className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+              <Text className="text-lg text-[#2D3748]">
+                Rate recent recipes
+              </Text>
+              <ChevronRight stroke="#666" size={20} />
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Weight History Chart */}
-        {weightHistory.length > 0 && (
+          {/* Weight Update Section */}
           <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
             <Text className="text-xl font-semibold text-[#2D3748] mb-4">
-              Weight History
+              Update weekly weight
             </Text>
-            <LineChart
-              data={chartData}
-              width={screenWidth - 32}
-              height={220}
-              chartConfig={chartConfig}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-              withDots={true}
-              withInnerLines={true}
-              withOuterLines={true}
-              withVerticalLines={false}
-              withHorizontalLines={true}
-              withVerticalLabels={true}
-              withHorizontalLabels={true}
-              fromZero={false}
-              yAxisLabel=""
-              yAxisSuffix=" kg"
-            />
+            <View className="space-y-4">
+              <View>
+                <Text className="text-gray-600 mb-2">Weight</Text>
+                <TextInput
+                  className={`bg-gray-50 p-4 rounded-lg border ${
+                    canUpdateWeight
+                      ? "border-gray-200"
+                      : "border-gray-100 bg-gray-100"
+                  }`}
+                  placeholder="Enter weight in kg"
+                  value={weight}
+                  onChangeText={setWeight}
+                  keyboardType="numeric"
+                  editable={canUpdateWeight}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={handleUpdateWeight}
+                disabled={!canUpdateWeight}
+                className={`p-4 rounded-lg ${
+                  canUpdateWeight ? "bg-[#2D3748]" : "bg-gray-200"
+                }`}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-      </ScrollView>
+
+          {/* Weight History Chart */}
+          {weightHistory.length > 0 && (
+            <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
+              <Text className="text-xl font-semibold text-[#2D3748] mb-4">
+                Weight History
+              </Text>
+              <LineChart
+                data={chartData}
+                width={screenWidth - 32}
+                height={220}
+                chartConfig={chartConfig}
+                bezier
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 16,
+                }}
+                withDots={true}
+                withInnerLines={true}
+                withOuterLines={true}
+                withVerticalLines={false}
+                withHorizontalLines={true}
+                withVerticalLabels={true}
+                withHorizontalLabels={true}
+                fromZero={false}
+                yAxisLabel=""
+                yAxisSuffix=" kg"
+              />
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Logout Button - Fixed at bottom */}
+        <View className="px-4 pb-6 pt-2 border-t border-gray-100">
+          <TouchableOpacity
+            onPress={handleLogout}
+            disabled={loggingOut}
+            className="flex-row justify-center items-center bg-red-50 p-4 rounded-xl"
+          >
+            <Text className="text-red-600 text-lg mr-2">Logout</Text>
+            <LogOut stroke="#DC2626" size={20} />
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

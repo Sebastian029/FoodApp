@@ -400,10 +400,6 @@ class CartAPIView(APIView):
         return Response({"message": "Cart ingredient updated."}, status=status.HTTP_200_OK)
 
     def delete(self, request, ingredient_id=None):
-        """
-        Remove a specific ingredient from the cart, or clear the entire cart if no id is provided.
-        The removal will only affect the cart, not the original recipe or ingredients.
-        """
         user = request.user
         cart = self.get_cart(user)
 
@@ -417,8 +413,9 @@ class CartAPIView(APIView):
                 return Response({"message": "Ingredient not found in cart."}, status=status.HTTP_404_NOT_FOUND)
         else:
             # If no ingredient ID is provided, clear all items in the cart
-            cart.ingredients.all().delete()  # Remove all ingredients in the cart
+            CartIngredient.objects.filter(cart=cart).delete()  # Remove all CartIngredient entries
             return Response({"message": "All ingredients removed from cart."}, status=status.HTTP_200_OK)
+
 
 
 # RecipeIngredients Views
