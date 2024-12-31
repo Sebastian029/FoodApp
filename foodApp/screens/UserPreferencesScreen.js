@@ -145,7 +145,7 @@ export default function UserPreferencesScreen({ navigation }) {
               </Text>
               <ChevronRight stroke="#666" size={20} />
             </TouchableOpacity>
-            <View className="h-4" /> {/* Spacing between buttons */}
+            <View className="h-4" />
             <TouchableOpacity className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm">
               <Text className="text-lg text-[#2D3748]">
                 Rate recent recipes
