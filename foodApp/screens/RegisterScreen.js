@@ -4,13 +4,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { colors, shadows } from "../styles/theme";
-import { tokenManager } from "../utils/tokenManager";
+import { shadows } from "../styles/theme";
 import { authAPI } from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
@@ -18,6 +19,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
@@ -28,11 +30,7 @@ export default function RegisterScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await authAPI.register({ name, email, password });
-      await tokenManager.setToken(response.data.token);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Main" }],
-      });
+      await login(response.data);
     } catch (error) {
       Alert.alert(
         "Error",
@@ -50,21 +48,21 @@ export default function RegisterScreen({ navigation }) {
     >
       <View className="flex-1 p-6">
         {/* Header */}
-        <View className="items-center mt-20 mb-12">
+        <View className="items-center mt-20 mb-10">
           <Text className="text-2xl font-bold">Register an account</Text>
         </View>
 
         {/* Form */}
         <View className="space-y-4">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
             placeholder="Enter your email"
             value={email}
             onChangeText={setEmail}
@@ -73,7 +71,7 @@ export default function RegisterScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
@@ -81,7 +79,7 @@ export default function RegisterScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6" // More margin-bottom for spacing
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
             placeholder="Re-type your password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}

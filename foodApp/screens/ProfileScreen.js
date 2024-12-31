@@ -1,25 +1,17 @@
 import React, { useState } from "react";
-
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { tokenManager } from "../utils/tokenManager";
-import { authAPI } from "../utils/api";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
       setLoading(true);
-      await authAPI.logout();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Auth" }],
-      });
+      await logout();
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.message || "Failed to logout");
+      Alert.alert("Error", "Failed to logout");
     } finally {
       setLoading(false);
     }
@@ -30,9 +22,12 @@ export default function ProfileScreen() {
       <Text className="text-2xl font-bold text-gray-800 mb-8">Profile</Text>
       <TouchableOpacity
         onPress={handleLogout}
+        disabled={loading}
         className="bg-[#F5A623] px-6 py-3 rounded-full"
       >
-        <Text className="text-white font-semibold">Logout</Text>
+        <Text className="text-white font-semibold">
+          {loading ? "Logging out..." : "Logout"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

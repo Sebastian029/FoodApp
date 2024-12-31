@@ -9,23 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { colors, shadows } from "../styles/theme";
-import { tokenManager } from "../utils/tokenManager";
+import { shadows } from "../styles/theme";
 import { authAPI } from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     try {
       setLoading(true);
       const response = await authAPI.login({ email, password });
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Main" }],
-      });
+      await login(response.data);
     } catch (error) {
       Alert.alert("Error", error.response?.data?.message || "Failed to login");
     } finally {
@@ -43,7 +41,7 @@ export default function LoginScreen({ navigation }) {
         <View className="items-center mt-20 mb-12">
           <Image
             source={require("../assets/logo.png")}
-            className="w-40 h-40 mb-6" // Increased size of the logo
+            className="w-40 h-40 mb-6"
           />
           <Text className="text-2xl font-bold">Welcome</Text>
         </View>
@@ -51,7 +49,7 @@ export default function LoginScreen({ navigation }) {
         {/* Form */}
         <View className="space-y-4">
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4" // Added margin-bottom
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
@@ -60,7 +58,7 @@ export default function LoginScreen({ navigation }) {
           />
 
           <TextInput
-            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6" // Added more margin-bottom for spacing
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6"
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
@@ -76,7 +74,7 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
-            className="bg-[#F5A623] p-4 rounded-full shadow-lg mt-6" // Added spacing before button
+            className="bg-[#F5A623] p-4 rounded-full shadow-lg mt-6"
             style={shadows.default}
           >
             <Text className="text-center text-white font-semibold text-lg">

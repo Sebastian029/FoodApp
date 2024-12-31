@@ -69,7 +69,8 @@ api.interceptors.response.use(
       });
 
       const { access } = response.data;
-      await tokenManager.setTokens({ access, refresh: refreshToken });
+      const { refresh } = response.data;
+      await tokenManager.setTokens({ access, refresh });
 
       api.defaults.headers.common.Authorization = `Bearer ${access}`;
       originalRequest.headers.Authorization = `Bearer ${access}`;
