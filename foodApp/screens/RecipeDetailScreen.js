@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Modal,
-  Button,
+  Share,
 } from "react-native";
 import { ArrowLeft, Share2, Plus, Check } from "react-native-feather";
 import api from "../utils/api";

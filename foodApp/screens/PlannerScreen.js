@@ -9,10 +9,9 @@ import {
   SafeAreaView,
 } from "react-native";
 import { format, parseISO } from "date-fns";
-import { ChevronRight, RotateCcw } from "react-native-feather";
+import { ChevronRight, RotateCcw, Share } from "react-native-feather";
 import api from "../utils/api";
 
-// Static data for week total - to be replaced with dynamic data later
 const WEEK_TOTALS = [
   { day: "Mon", calories: 1000 },
   { day: "Tue", calories: 1000 },
@@ -113,8 +112,7 @@ export default function PlannerScreen({ navigation }) {
       <View className="flex-1">
         {/* Main Content ScrollView */}
         <ScrollView className="flex-1">
-          {/* Week Total - Moved down with proper spacing */}
-          <View className="pt-6 pb-4">
+          {/* <View className="pt-6 pb-4">
             <Text className="text-lg font-semibold text-center mb-4">
               Week Total
             </Text>
@@ -127,7 +125,7 @@ export default function PlannerScreen({ navigation }) {
                 />
               ))}
             </View>
-          </View>
+          </View> */}
 
           {/* Date Selector - Horizontal ScrollView */}
           <View className="px-4 py-2 border-t border-b border-gray-100">

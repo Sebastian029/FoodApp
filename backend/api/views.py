@@ -176,7 +176,7 @@ class RecipeTypeView(APIView):
             recipes = Recipe.objects.all()
         
         # Serialize the filtered (or all) recipes
-        serializer = RecipeSerializerShort(recipes, many=True)
+        serializer = RecipeSerializer(recipes, many=True)
         
         # Return the response
         return Response(serializer.data)
@@ -664,6 +664,5 @@ class DietChoicesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Send the diet choices as a list of values
         diet_choices = dict(UserNutrientPreferences.DIET_CHOICES)
         return Response(diet_choices)

@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -15,23 +14,31 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
+  const [surname, setSurname] = useState(""); // Added state for surname
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirm_password, setConfirm_password] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleRegister = async () => {
-    if (password !== confirmPassword) {
+    if (password !== confirm_password) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await authAPI.register({ name, email, password });
+      const response = await authAPI.register({
+        name,
+        surname,
+        email,
+        password,
+        confirm_password,
+      });
       await login(response.data);
     } catch (error) {
+      console.error("Registration Error:", error.response || error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "Failed to register"
@@ -59,6 +66,15 @@ export default function RegisterScreen({ navigation }) {
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
+            style={{ marginVertical: 5 }} // Added margin
+          />
+
+          <TextInput
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+            placeholder="Enter your surname"
+            value={surname}
+            onChangeText={setSurname}
+            style={{ marginVertical: 5 }} // Added margin
           />
 
           <TextInput
@@ -68,6 +84,7 @@ export default function RegisterScreen({ navigation }) {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            style={{ marginVertical: 5 }} // Added margin
           />
 
           <TextInput
@@ -76,14 +93,16 @@ export default function RegisterScreen({ navigation }) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            style={{ marginVertical: 5 }} // Added margin
           />
 
           <TextInput
             className="bg-gray-50 p-4 rounded-lg border border-gray-200"
             placeholder="Re-type your password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            value={confirm_password}
+            onChangeText={setConfirm_password}
             secureTextEntry
+            style={{ marginVertical: 5 }} // Added margin
           />
 
           <TouchableOpacity
