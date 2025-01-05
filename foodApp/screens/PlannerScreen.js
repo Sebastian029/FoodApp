@@ -7,38 +7,59 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
+  Dimensions,
+  Pressable,
+  Animated,
 } from "react-native";
 import { format, parseISO } from "date-fns";
-import { ChevronRight, RotateCcw, Share } from "react-native-feather";
+import {
+  ChevronRight,
+  RotateCcw,
+  Share,
+  ChevronDown,
+  ChevronUp,
+  X,
+} from "react-native-feather";
 import api from "../utils/api";
 
-const WEEK_TOTALS = [
-  { day: "Mon", calories: 1000 },
-  { day: "Tue", calories: 1000 },
-  { day: "Wed", calories: 1000 },
-  { day: "Thu", calories: 1000 },
-];
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
-const CalorieCircle = ({ day, calories, progress = 0.75 }) => (
-  <View className="items-center mx-2">
-    <View className="w-16 h-16 relative">
-      <View className="w-full h-full rounded-full border-4 border-[#3B82F6] opacity-20" />
-      <View
-        className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-[#3B82F6]"
-        style={{
-          clip: `rect(0, ${32 * progress}px, 64px, 0)`,
-        }}
-      />
-      <View className="absolute top-0 left-0 w-full h-full items-center justify-center">
-        <Text className="text-xs text-gray-600">{calories}</Text>
-        <Text className="text-xs text-gray-600">kcal</Text>
+const NutrientItem = ({ label, data, unit }) => {
+  const range = data.max_7_days - data.min_7_days;
+  const percentage = Math.min(
+    Math.max(((data.total - data.min_7_days) / range) * 100, 0),
+    100
+  );
+
+  return (
+    <View className="mb-6">
+      <View className="flex-row justify-between mb-2">
+        <Text className="text-base font-medium text-gray-600">{label}</Text>
+        <Text className="text-base text-gray-600">
+          {data.total.toLocaleString()} {unit}
+        </Text>
+      </View>
+
+      <View className="h-3 bg-gray-100 rounded-full overflow-hidden">
+        <View
+          className="h-full bg-[#F5A623]"
+          style={{ width: `${percentage}%` }}
+        />
+      </View>
+
+      <View className="flex-row justify-between mt-2">
+        <Text className="text-sm text-gray-500">
+          Min: {data.min_7_days.toLocaleString()} {unit}
+        </Text>
+        <Text className="text-sm text-gray-500">
+          Max: {data.max_7_days.toLocaleString()} {unit}
+        </Text>
       </View>
     </View>
-    <Text className="text-xs text-gray-600 mt-1">{day}</Text>
-  </View>
-);
+  );
+};
 
 const MealItem = ({ recipe, onRefresh, onPress }) => (
   <TouchableOpacity
@@ -63,6 +84,23 @@ export default function PlannerScreen({ navigation }) {
   const [weeklyPlan, setWeeklyPlan] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [nutrientData, setNutrientData] = useState(null);
+  const [loadingNutrients, setLoadingNutrients] = useState(true);
+  const [isNutrientSummaryExpanded, setIsNutrientSummaryExpanded] =
+    useState(false);
+  const [summaryAnimation] = useState(new Animated.Value(0));
+
+  const fetchNutrientData = async () => {
+    try {
+      setLoadingNutrients(true);
+      const response = await api.get("/nutrient-summary/");
+      setNutrientData(response.data);
+    } catch (error) {
+      console.error("Error fetching nutrient data:", error);
+    } finally {
+      setLoadingNutrients(false);
+    }
+  };
 
   const fetchWeeklyPlan = async () => {
     try {
@@ -82,8 +120,20 @@ export default function PlannerScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       fetchWeeklyPlan();
+      fetchNutrientData();
     }, [])
   );
+
+  const toggleNutrientSummary = () => {
+    const toValue = isNutrientSummaryExpanded ? 0 : 1;
+    setIsNutrientSummaryExpanded(!isNutrientSummaryExpanded);
+    Animated.spring(summaryAnimation, {
+      toValue,
+      useNativeDriver: true,
+      tension: 20,
+      friction: 7,
+    }).start();
+  };
 
   const selectedDayPlan = weeklyPlan.find((day) => day.date === selectedDate);
 
@@ -94,11 +144,6 @@ export default function PlannerScreen({ navigation }) {
     );
   };
 
-  const handleRefreshMeal = async (mealType) => {
-    // TODO: Implement meal refresh logic
-    console.log("Refreshing meal:", mealType);
-  };
-
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -107,27 +152,102 @@ export default function PlannerScreen({ navigation }) {
     );
   }
 
+  const renderNutrientSummary = (fullScreen = false) => {
+    if (loadingNutrients) {
+      return (
+        <View
+          className={`p-4 bg-white rounded-lg ${
+            !fullScreen && "shadow-sm mb-4"
+          }`}
+        >
+          <ActivityIndicator size="small" color="#F5A623" />
+        </View>
+      );
+    }
+
+    if (!nutrientData) return null;
+
+    return (
+      <View className={`bg-white rounded-lg ${!fullScreen && "shadow-sm"}`}>
+        <TouchableOpacity
+          onPress={fullScreen ? null : toggleNutrientSummary}
+          className="flex-row justify-between items-center p-4"
+        >
+          <Text className="text-lg font-semibold text-[#2D3748]">
+            Weekly Nutrient Summary
+          </Text>
+          {!fullScreen && (
+            <View className="flex-row items-center">
+              {isNutrientSummaryExpanded ? (
+                <ChevronUp size={20} stroke="#666" />
+              ) : (
+                <ChevronDown size={20} stroke="#666" />
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <Animated.View
+          style={{
+            opacity: fullScreen ? 1 : summaryAnimation,
+            transform: [
+              {
+                translateY: fullScreen
+                  ? 0
+                  : summaryAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }),
+              },
+            ],
+          }}
+          className={`px-4 ${fullScreen ? "pb-6" : "pb-4"}`}
+        >
+          {(isNutrientSummaryExpanded || fullScreen) && (
+            <>
+              <NutrientItem
+                label="Calories"
+                data={nutrientData.comparisons.total_calories}
+                unit="kcal"
+              />
+
+              <NutrientItem
+                label="Sugars"
+                data={nutrientData.comparisons.sugars}
+                unit="g"
+              />
+
+              <NutrientItem
+                label="Protein"
+                data={nutrientData.comparisons.protein}
+                unit="g"
+              />
+
+              <NutrientItem
+                label="Iron"
+                data={nutrientData.comparisons.iron}
+                unit="mg"
+              />
+
+              <NutrientItem
+                label="Potassium"
+                data={nutrientData.comparisons.potassium}
+                unit="mg"
+              />
+            </>
+          )}
+        </Animated.View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1">
-        {/* Main Content ScrollView */}
         <ScrollView className="flex-1">
-          {/* <View className="pt-6 pb-4">
-            <Text className="text-lg font-semibold text-center mb-4">
-              Week Total
-            </Text>
-            <View className="flex-row justify-center px-4">
-              {WEEK_TOTALS.map((total, index) => (
-                <CalorieCircle
-                  key={index}
-                  day={total.day}
-                  calories={total.calories}
-                />
-              ))}
-            </View>
-          </View> */}
+          {/* Nutrient Summary Section */}
+          <View className="px-4 pt-4">{renderNutrientSummary(false)}</View>
 
-          {/* Date Selector - Horizontal ScrollView */}
           <View className="px-4 py-2 border-t border-b border-gray-100">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {weeklyPlan.map((day) => (
@@ -167,7 +287,6 @@ export default function PlannerScreen({ navigation }) {
                     <MealItem
                       key={recipe.id}
                       recipe={recipe}
-                      onRefresh={() => handleRefreshMeal(type)}
                       onPress={() =>
                         navigation.navigate("RecipeDetail", {
                           recipeId: recipe.id,

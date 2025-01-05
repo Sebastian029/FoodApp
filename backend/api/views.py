@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from datetime import timedelta, datetime
 from django.utils.timezone import now
-from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Case, When, Value, IntegerField, Sum
 
 
 from .serializers import RegisterSerializer
@@ -666,3 +666,66 @@ class DietChoicesView(APIView):
     def get(self, request):
         diet_choices = dict(UserNutrientPreferences.DIET_CHOICES)
         return Response(diet_choices)
+    
+class NutrientSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Nutrient fields to calculate
+        recipe_fields = ['total_calories', 'sugars', 'protein', 'iron', 'potassium']
+        preference_fields = {
+            'total_calories': ['min_calories', 'max_calories'],
+            'sugars': ['min_sugars', 'max_sugars'],
+            'protein': ['min_protein', 'max_protein'],
+            'iron': ['min_iron', 'max_iron'],
+            'potassium': ['min_potassium', 'max_potassium']
+        }
+
+        aggregates = {field: 0 for field in recipe_fields}
+
+        # Get all planned recipes for the user
+        planned_recipes = DayPlanRecipes.objects.filter(day_plan__user=user)
+
+        # Calculate total values for each nutrient
+        for plan_recipe in planned_recipes:
+            recipe = plan_recipe.recipe
+            for field in recipe_fields:
+                value = getattr(recipe, field, 0) or 0  # Default to 0 if None
+                try:
+                    aggregates[field] += float(value)
+                except ValueError:
+                    aggregates[field] += 0  # Ignore invalid numeric values
+
+        # Fetch user's nutrient preferences
+        try:
+            preferences = UserNutrientPreferences.objects.get(user=user)
+        except UserNutrientPreferences.DoesNotExist:
+            return Response(
+                {"detail": "User nutrient preferences not set."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Compare user preferences with aggregated nutrient totals
+        comparisons = {}
+        for field in recipe_fields:
+            min_field, max_field = preference_fields[field]
+
+            # Get min and max values for comparison
+            min_value = getattr(preferences, min_field, None) * 7
+            max_value = getattr(preferences, max_field, None) * 7
+
+           
+
+            total = aggregates[field]
+
+            comparisons[field] = {
+                "total": total,
+                "min_7_days": min_value,
+                "max_7_days": max_value,
+    
+            }
+
+        return Response({"comparisons": comparisons})
+

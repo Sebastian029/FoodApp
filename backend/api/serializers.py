@@ -200,3 +200,10 @@ class DietTypeSerializer(serializers.ModelSerializer):
         if value not in dict(UserNutrientPreferences.DIET_CHOICES):
             raise serializers.ValidationError("Invalid diet type.")
         return value
+    
+class NutrientSummarySerializer(serializers.Serializer):
+    total_calories = serializers.FloatField()
+    total_sugars = serializers.FloatField()
+    total_protein = serializers.FloatField()
+    total_iron = serializers.FloatField()
+    total_potassium = serializers.FloatField()
