@@ -679,8 +679,6 @@ class CartTestCase(APITestCase):
 
         response = self.client.post('/api/cart/', recipe_data, format='json')
 
-        # Print response details to debug
-        print(response.data)  # Add this to print the response body for inspection
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
