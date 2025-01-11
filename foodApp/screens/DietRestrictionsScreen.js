@@ -15,12 +15,23 @@ import { SelectList } from "react-native-dropdown-select-list";
 import api from "../utils/api";
 
 export default function DietRestrictionsScreen({ navigation }) {
+  const [tooltipField, setTooltipField] = useState(null);
+  const handleHelpPress = (field) => {
+    setTooltipField(field);
+  };
+
+  const handleHelpRelease = () => {
+    setTooltipField(null);
+  };
   const [restrictions, setRestrictions] = useState({
     calories: { min: "", max: "" },
     proteins: { min: "", max: "" },
     sugar: { min: "", max: "" },
     iron: { min: "", max: "" },
     potassium: { min: "", max: "" },
+    fat: { min: "", max: "" },
+    carbohydrates: { min: "", max: "" },
+    fiber: { min: "", max: "" },
   });
   const [loading, setLoading] = useState(false);
   const [dietTypes, setDietTypes] = useState([]);
@@ -52,6 +63,18 @@ export default function DietRestrictionsScreen({ navigation }) {
         potassium: {
           min: data.min_potassium.toString(),
           max: data.max_potassium.toString(),
+        },
+        fat: {
+          min: data.min_fat.toString(),
+          max: data.max_fat.toString(),
+        },
+        carbohydrates: {
+          min: data.min_carbohydrates.toString(),
+          max: data.max_carbohydrates.toString(),
+        },
+        fiber: {
+          min: data.min_fiber.toString(),
+          max: data.max_fiber.toString(),
         },
       });
     } catch (error) {
@@ -102,6 +125,12 @@ export default function DietRestrictionsScreen({ navigation }) {
         max_iron: restrictions.iron.max,
         min_potassium: restrictions.potassium.min,
         max_potassium: restrictions.potassium.max,
+        min_fat: restrictions.fat.min,
+        max_fat: restrictions.fat.max,
+        min_carbohydrates: restrictions.carbohydrates.min,
+        max_carbohydrates: restrictions.carbohydrates.max,
+        min_fiber: restrictions.fiber.min,
+        max_fiber: restrictions.fiber.max,
       });
       Alert.alert("Success", "Diet restrictions saved successfully.");
       navigation.goBack();
@@ -116,10 +145,10 @@ export default function DietRestrictionsScreen({ navigation }) {
   const handleDietTypeChange = async (selected) => {
     try {
       setLoading(true);
-      let validDietType = selected.toLowerCase();
-      if (validDietType === "high protein") {
-        validDietType = "high_protein";
-      }
+
+      // Convert selected diet type to lowercase and replace spaces with underscores
+      let validDietType = selected.toLowerCase().replace(/\s+/g, "_");
+
       const response = await api.put("/diet-type/", {
         diet_type: validDietType,
       });
@@ -177,10 +206,22 @@ export default function DietRestrictionsScreen({ navigation }) {
     <View className="mb-4">
       <View className="flex-row justify-between items-center mb-1">
         <Text className="text-[#2D3748]">{label}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPressIn={() => handleHelpPress(field)}
+          onPressOut={handleHelpRelease}
+        >
           <HelpCircle size={20} stroke="#666" />
         </TouchableOpacity>
       </View>
+
+      {tooltipField === field && (
+        <View className="mt-2 p-3 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white rounded-xl shadow-lg">
+          <Text className="text-sm font-semibold text-center">
+            Set your {label} value. If set to 0, it will not be included in the
+            meal planning calculations.
+          </Text>
+        </View>
+      )}
       <View className="flex-row space-x-4">
         <View className="flex-1">
           <TextInput
@@ -238,6 +279,9 @@ export default function DietRestrictionsScreen({ navigation }) {
       <ScrollView className="flex-1 p-4">
         {renderInput("Calories (kcal)", "calories")}
         {renderInput("Proteins (g)", "proteins")}
+        {renderInput("Fat (g)", "fat")}
+        {renderInput("Carbohydrates (g)", "carbohydrates")}
+        {renderInput("Fiber (g)", "fiber")}
         {renderInput("Sugar (g)", "sugar")}
         {renderInput("Iron (mg)", "iron")}
         {renderInput("Potassium (mg)", "potassium")}

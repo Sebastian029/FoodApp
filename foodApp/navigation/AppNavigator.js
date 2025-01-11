@@ -7,6 +7,7 @@ import RecipeListScreen from "../screens/RecipeListScreen";
 import RecipeDetailScreen from "../screens/RecipeDetailScreen";
 import DietRestrictionsScreen from "../screens/DietRestrictionsScreen";
 import BlockedIngredientsScreen from "../screens/BlockedIngredientScreen";
+import WeeklyNutritionScreen from "../screens/WeeklyNutritionScreen";
 import { useAuth } from "../contexts/AuthContext";
 import { ActivityIndicator, View } from "react-native";
 
@@ -41,6 +42,10 @@ export default function AppNavigator() {
               name="BlockedIngredients"
               component={BlockedIngredientsScreen}
             />
+            <Stack.Screen
+              name="WeeklyNutrition"
+              component={WeeklyNutritionScreen}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -56,4 +61,3 @@ function AuthNavigator() {
     </Stack.Navigator>
   );
 }
-

@@ -12,6 +12,14 @@ import {
 import { ArrowLeft, Share2, Plus, Check } from "react-native-feather";
 import api from "../utils/api";
 
+const formatTime = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return hours > 0
+    ? `${hours}h ${remainingMinutes}min`
+    : `${remainingMinutes}min`;
+};
+
 const handleShare = async (recipe) => {
   try {
     if (!recipe) {
@@ -35,9 +43,12 @@ Description: ${recipe.description}
 Total Calories: ${recipe.total_calories}
 Sugars: ${recipe.sugars}g
 Protein: ${recipe.protein}g
+Fat: ${recipe.fat}g
+Carbohydrates: ${recipe.carbohydrates}g
+Fiber: ${recipe.fiber}g
 Iron: ${recipe.iron}mg
 Potassium: ${recipe.potassium}mg
-Preparation Time: ${recipe.preparation_time} minutes
+Preparation Time: ${formatTime(recipe.preparation_time)} 
 
 Preparation Guide:
   ${recipe.preparation_guide.replace(/\n/g, "\n  ")}
@@ -49,23 +60,13 @@ ${ingredientsList}
     const result = await Share.share({
       message,
     });
-
-    if (result.action === Share.sharedAction) {
-      if (result.activityType) {
-        console.log("Shared with activity type:", result.activityType);
-      } else {
-        console.log("Recipe shared successfully!");
-      }
-    } else if (result.action === Share.dismissedAction) {
-      console.log("Share was dismissed");
-    }
   } catch (error) {
     console.error("Error sharing recipe:", error);
   }
 };
 
 const NutritionFact = ({ label, value }) => (
-  <View className="items-center">
+  <View className="items-center mx-3">
     <Text className="text-2xl font-bold text-[#2D3748]">{value}</Text>
     <Text className="text-sm text-gray-500">{label}</Text>
   </View>
@@ -257,16 +258,27 @@ export default function RecipeDetailScreen({ navigation, route }) {
             <Text className="text-2xl font-semibold text-[#2D3748] mb-4">
               Nutritions
             </Text>
-            <View className="flex-row justify-between">
-              <NutritionFact label="calories" value={recipe.total_calories} />
-              <NutritionFact label="sugar" value={`${recipe.sugars}g`} />
-              <NutritionFact label="protein" value={`${recipe.protein}g`} />
-              <NutritionFact label="iron" value={`${recipe.iron}mg`} />
-              <NutritionFact
-                label="potassium"
-                value={`${recipe.potassium}mg`}
-              />
-            </View>
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              <View className="flex-row justify-between space-x-200">
+                <NutritionFact label="kcal" value={recipe.total_calories} />
+                <NutritionFact label="sugar" value={`${recipe.sugars}g`} />
+                <NutritionFact label="protein" value={`${recipe.protein}g`} />
+                <NutritionFact label="fat" value={`${recipe.fat}g`} />
+                <NutritionFact
+                  label="carbohydrates"
+                  value={`${recipe.carbohydrates}g`}
+                />
+                <NutritionFact label="fiber" value={`${recipe.fiber}g`} />
+                <NutritionFact label="iron" value={`${recipe.iron}mg`} />
+                <NutritionFact
+                  label="potassium"
+                  value={`${recipe.potassium}mg`}
+                />
+              </View>
+            </ScrollView>
           </View>
 
           {/* Ingredients */}
@@ -309,7 +321,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
           {/* Preparation */}
           <View className="bg-white rounded-xl p-4 mb-6">
             <Text className="text-2xl font-semibold text-[#2D3748] mb-4">
-              Preparation ({recipe.preparation_time} min)
+              Preparation ({formatTime(recipe.preparation_time)})
             </Text>
             {preparationSteps.length > 0 ? (
               preparationSteps.map((step, index) => (

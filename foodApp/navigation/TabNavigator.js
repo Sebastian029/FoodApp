@@ -49,7 +49,7 @@ export default function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Preferences"
+        name="User"
         component={UserPreferencesScreen}
         options={{
           tabBarIcon: ({ color, size }) => (

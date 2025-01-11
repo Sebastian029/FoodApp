@@ -118,6 +118,16 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     # Define decision variables for each meal
     meal_vars = [LpVariable(f"meal_{i}", cat='Binary') for i in df.index]
 
+    # Limit the number of selected meals to a maximum of 6
+    model += lpSum(meal_vars) <= 6, "Max_Meals"
+    model += lpSum(
+        1 * df.loc[i, 'total_calories'] * meal_vars[i]  # Calories are most important
+        + 2 * df.loc[i, 'protein'] * meal_vars[i]        # Secondary priority: Protein
+        + 1 * df.loc[i, 'fiber'] * meal_vars[i]          # Tertiary priority: Fiber
+        - 0.5 * df.loc[i, 'sugars'] * meal_vars[i]       # Penalize high sugar (negative weight)
+        for i in df.index
+    ), "Weighted_Nutrient_Optimization"
+    
     # Objective function
     if optimize_field in df.columns:
         model += lpSum(df.loc[i, optimize_field] * meal_vars[i] for i in df.index), f"{objective.capitalize()}_{optimize_field.capitalize()}"
@@ -154,8 +164,7 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     if preferences.min_fiber > 0 and preferences.max_fiber > 0:
         model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) >= preferences.min_fiber, "Min_Fiber"
         model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) <= preferences.max_fiber, "Max_Fiber"
-    # Limit the number of selected meals to a maximum of 6
-    model += lpSum(meal_vars) <= 6, "Max_Meals"
+    
 
     # Ensure at least one meal from each category
     for meal_type in ['lunch', 'dinner', 'snack', 'breakfast']:

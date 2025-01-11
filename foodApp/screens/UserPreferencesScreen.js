@@ -146,9 +146,12 @@ export default function UserPreferencesScreen({ navigation }) {
               <ChevronRight stroke="#666" size={20} />
             </TouchableOpacity>
             <View className="h-4" />
-            <TouchableOpacity className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+            <TouchableOpacity
+              className="flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm"
+              onPress={() => navigation.navigate("WeeklyNutrition")}
+            >
               <Text className="text-lg text-[#2D3748]">
-                Rate recent recipes
+                Get Weekly Nutrition Information
               </Text>
               <ChevronRight stroke="#666" size={20} />
             </TouchableOpacity>
