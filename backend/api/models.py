@@ -94,11 +94,13 @@ class CartIngredient(models.Model):
     
 class UserNutrientPreferences(models.Model):
     DIET_CHOICES = [
-        ('keto', 'Keto'),
-        ('vegan', 'Vegan'),
-        ('vegetarian', 'Vegetarian'),
+        ('low_calories', 'Low Calories'),
+        ('high_calories', 'High Calories'),
         ('high_protein', 'High Protein'),
-        ('balanced', 'Balanced'),
+        ('low_fat', 'Low Fat'),
+        ('high_fat', 'High Fat'),
+        ('low_carbohydrates', 'Low Carbohydrates'),
+        ('high_carbohydrates', 'High Carbohydrates'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)

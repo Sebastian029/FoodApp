@@ -1,8 +1,8 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from api.models import (Ingredient, DislikedIngredients, UserNutrientPreferences, RecipeIngredients, UserWeight,
-                        Cart, CartIngredient, DayPlanRecipes, DayPlan
+from api.models import (Ingredient, DislikedIngredients, RecipeIngredients, UserWeight,
+                        Cart, CartIngredient, DayPlanRecipes, DayPlan, UserNutrientPreferences
                         )
 from datetime import timedelta, datetime
 from django.utils.timezone import now
@@ -165,16 +165,22 @@ class EndpointsTestCase(APITestCase):
         """
         url = '/api/preferences/'  # Direct URL for nutrient preferences
         data = {
-            "min_calories": 100,
-            "max_calories": 200,
-            "min_sugars": 10,
-            "max_sugars": 20,
-            "min_protein": 15,
-            "max_protein": 30,
-            "min_iron": 5,
-            "max_iron": 10,
-            "min_potassium": 200,
-            "max_potassium": 400
+            "min_calories": 1500,
+            "max_calories": 2500,
+            "min_sugars": 30,
+            "max_sugars": 50,
+            "min_protein": 50,
+            "max_protein": 100,
+            "min_iron": 10,
+            "max_iron": 20,
+            "min_potassium": 3000,
+            "max_potassium": 4000,
+            "min_carbohydrates": 200,
+            "max_carbohydrates": 300,
+            "min_fat": 50,
+            "max_fat": 80,
+            "min_fiber": 20,
+            "max_fiber": 35
         }
 
         response = self.client.post(url, data, format='json')
@@ -183,16 +189,22 @@ class EndpointsTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Check that the response contains the expected fields
-        self.assertEqual(response.data['min_calories'], 100)
-        self.assertEqual(response.data['max_calories'], 200)
-        self.assertEqual(response.data['min_sugars'], 10)
-        self.assertEqual(response.data['max_sugars'], 20)
-        self.assertEqual(response.data['min_protein'], 15)
-        self.assertEqual(response.data['max_protein'], 30)
-        self.assertEqual(response.data['min_iron'], 5)
-        self.assertEqual(response.data['max_iron'], 10)
-        self.assertEqual(response.data['min_potassium'], 200)
-        self.assertEqual(response.data['max_potassium'], 400)
+        self.assertEqual(response.data['min_calories'], 1500)
+        self.assertEqual(response.data['max_calories'], 2500)
+        self.assertEqual(response.data['min_sugars'], 30)
+        self.assertEqual(response.data['max_sugars'], 50)
+        self.assertEqual(response.data['min_protein'], 50)
+        self.assertEqual(response.data['max_protein'], 100)
+        self.assertEqual(response.data['min_iron'], 10)
+        self.assertEqual(response.data['max_iron'], 20)
+        self.assertEqual(response.data['min_potassium'], 3000)
+        self.assertEqual(response.data['max_potassium'], 4000)
+        self.assertEqual(response.data['min_carbohydrates'], 200)
+        self.assertEqual(response.data['max_carbohydrates'], 300)
+        self.assertEqual(response.data['min_fat'], 50)
+        self.assertEqual(response.data['max_fat'], 80)
+        self.assertEqual(response.data['min_fiber'], 20)
+        self.assertEqual(response.data['max_fiber'], 35)
 
     def test_set_user_nutrient_preferences_with_negative_values(self):
         """
@@ -209,7 +221,13 @@ class EndpointsTestCase(APITestCase):
             "min_iron": -5,
             "max_iron": -10,
             "min_potassium": -200,
-            "max_potassium": -400
+            "max_potassium": -400,
+            "min_carbohydrates": -50,
+            "max_carbohydrates": -100,
+            "min_fat": -10,
+            "max_fat": -20,
+            "min_fiber": -5,
+            "max_fiber": -10
         }
 
         response = self.client.post(url, data, format='json')
@@ -238,7 +256,13 @@ class EndpointsTestCase(APITestCase):
             "min_iron": "pqr",
             "max_iron": "stu",
             "min_potassium": "vwx",
-            "max_potassium": "yz"
+            "max_potassium": "yz",
+            "min_carbohydrates": "uvw",
+            "max_carbohydrates": "xyz",
+            "min_fat": "abc",
+            "max_fat": "def",
+            "min_fiber": "ghi",
+            "max_fiber": "jkl"
         }
 
         response = self.client.post(url, data, format='json')
@@ -258,9 +282,9 @@ class EndpointsTestCase(APITestCase):
         """
         url = '/api/preferences/'  # Direct URL for nutrient preferences
         data = {
-            "min_calories": 100,
-            "max_calories": 200,
-            "min_sugars": 10,
+            "min_calories": 1500,
+            "max_calories": 2500,
+            "min_sugars": 30,
             # Missing max_sugars, min_protein, max_protein, etc.
         }
 
@@ -282,7 +306,7 @@ class EndpointsTestCase(APITestCase):
 
         # Check if the response is correct
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['min_calories'], 100)
+        self.assertEqual(response.data['min_calories'], 1500)
 
     def test_post_user_disliked_ingredients(self):
         """
@@ -329,18 +353,26 @@ class SelectMealsTests(TestCase):
     def setUp(self):
         # Create a test user and set their nutrient preferences
         self.user = get_user_model().objects.create_user(email='test@example.com', password='testpass')
-        self.user.nutrient_preferences = {
-            'min_calories': 200,
-            'max_calories': 3000,
-            'min_sugars': 5,
-            'max_sugars': 50,
-            'min_protein': 10,
-            'max_protein': 200,
-            'min_iron': 5,
-            'max_iron': 20,
-            'min_potassium': 1000,
-            'max_potassium': 4000,
-        }
+        self.user_nutrient_preferences = UserNutrientPreferences.objects.create(
+            user=self.user,
+            min_calories=200,
+            max_calories=3000,
+            min_sugars=5,
+            max_sugars=50,
+            min_protein=10,
+            max_protein=200,
+            min_iron=5,
+            max_iron=20,
+            min_potassium=1000,
+            max_potassium=4000,
+            min_carbohydrates=1,
+            max_carbohydrates=100,
+            min_fat=1,
+            max_fat=100,
+            min_fiber=1,
+            max_fiber=100
+        )
+        
         self.user.save()
         
         self.recipe1 = Recipe.objects.create(
@@ -349,6 +381,9 @@ class SelectMealsTests(TestCase):
             total_calories=300,
             sugars=10,
             protein=15,
+            fat=10,
+            carbohydrates=5,
+            fiber=2,
             iron=2,
             potassium=500,
             preparation_time=20,
@@ -374,6 +409,9 @@ class SelectMealsTests(TestCase):
             total_calories="350", 
             sugars="1", 
             protein="8", 
+            fat="10",
+            carbohydrates="5",
+            fiber="2",
             iron="4", 
             potassium="600", 
             preparation_time=20,
@@ -386,7 +424,10 @@ class SelectMealsTests(TestCase):
             description="A classic Caesar salad with grilled chicken.",
             total_calories="500", 
             sugars="3", 
-            protein="35", 
+            protein="35",
+            fat="10",
+            carbohydrates="5",
+            fiber="2",
             iron="2", 
             potassium="800", 
             preparation_time=15,
@@ -399,7 +440,10 @@ class SelectMealsTests(TestCase):
             description="A rich pasta dish with a savory Bolognese sauce.",
             total_calories="600", 
             sugars="5", 
-            protein="25", 
+            protein="25",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="3", 
             potassium="750", 
             preparation_time=40,
@@ -412,7 +456,10 @@ class SelectMealsTests(TestCase):
             description="A hearty vegan bowl with quinoa, roasted veggies, and avocado.",
             total_calories="450", 
             sugars="2", 
-            protein="15", 
+            protein="15",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="5", 
             potassium="900", 
             preparation_time=30,
@@ -425,7 +472,10 @@ class SelectMealsTests(TestCase):
             description="A refreshing yogurt parfait with berries and granola.",
             total_calories="200", 
             sugars="10", 
-            protein="10", 
+            protein="10",
+            fat="10",
+            carbohydrates="5",
+            fiber="2",
             iron="1", 
             potassium="300", 
             preparation_time=10,
@@ -438,7 +488,10 @@ class SelectMealsTests(TestCase):
             description="A delicious vegetarian dish with breaded eggplant and marinara sauce.",
             total_calories="400", 
             sugars="10", 
-            protein="20", 
+            protein="20",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="4", 
             potassium="600", 
             preparation_time=50,
@@ -451,7 +504,10 @@ class SelectMealsTests(TestCase):
             description="Spicy beef tacos with fresh toppings.",
             total_calories="450", 
             sugars="5", 
-            protein="25", 
+            protein="25",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="6", 
             potassium="500", 
             preparation_time=25,
@@ -464,7 +520,10 @@ class SelectMealsTests(TestCase):
             description="A refreshing smoothie made with ripe mango and coconut milk.",
             total_calories="250", 
             sugars="11", 
-            protein="2", 
+            protein="2",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="1", 
             potassium="400", 
             preparation_time=5,
@@ -477,7 +536,10 @@ class SelectMealsTests(TestCase):
             description="Fluffy pancakes topped with maple syrup and berries.",
             total_calories="350", 
             sugars="1", 
-            protein="8", 
+            protein="8",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="3", 
             potassium="400", 
             preparation_time=20,
@@ -490,7 +552,10 @@ class SelectMealsTests(TestCase):
             description="A delicious stir fry with chicken, vegetables, and rice.",
             total_calories="550", 
             sugars="10", 
-            protein="30", 
+            protein="30",
+            fat="10",
+            carbohydrates="5",
+            fiber="2", 
             iron="3", 
             potassium="700", 
             preparation_time=30,
@@ -508,25 +573,35 @@ class SelectMealsTests(TestCase):
     def test_nutritional_preferences_constraints(self):
         """Test that selected meals respect the user's nutritional preferences."""
         selected_meals = select_meals(optimize_field='protein', objective='maximize', user=self.user)
-
+        user_preferences = UserNutrientPreferences.objects.get(user=self.user)
+        
         # Calculate total nutritional values of the selected meals
         total_calories = sum(int(meal.total_calories) for meal in selected_meals)  
         total_sugars = sum(int(meal.sugars) for meal in selected_meals)            
         total_protein = sum(int(meal.protein) for meal in selected_meals)          
         total_iron = sum(int(meal.iron) for meal in selected_meals)                
         total_potassium = sum(int(meal.potassium) for meal in selected_meals)
+        total_carbohydrates = sum(int(meal.carbohydrates) for meal in selected_meals)  
+        total_fat = sum(int(meal.fat) for meal in selected_meals)                     
+        total_fiber = sum(int(meal.fiber) for meal in selected_meals)   
 
         # Check if totals are within user's preferred ranges
-        self.assertGreaterEqual(total_calories, self.user.nutrient_preferences['min_calories'])
-        self.assertLessEqual(total_calories, self.user.nutrient_preferences['max_calories'])
-        self.assertGreaterEqual(total_sugars, self.user.nutrient_preferences['min_sugars'])
-        self.assertLessEqual(total_sugars, self.user.nutrient_preferences['max_sugars'])
-        self.assertGreaterEqual(total_protein, self.user.nutrient_preferences['min_protein'])
-        self.assertLessEqual(total_protein, self.user.nutrient_preferences['max_protein'])
-        self.assertGreaterEqual(total_iron, self.user.nutrient_preferences['min_iron'])
-        self.assertLessEqual(total_iron, self.user.nutrient_preferences['max_iron'])
-        self.assertGreaterEqual(total_potassium, self.user.nutrient_preferences['min_potassium'])
-        self.assertLessEqual(total_potassium, self.user.nutrient_preferences['max_potassium'])
+        self.assertGreaterEqual(total_calories, user_preferences.min_calories)
+        self.assertLessEqual(total_calories, user_preferences.max_calories)
+        self.assertGreaterEqual(total_sugars, user_preferences.min_sugars)
+        self.assertLessEqual(total_sugars, user_preferences.max_sugars)
+        self.assertGreaterEqual(total_protein, user_preferences.min_protein)
+        self.assertLessEqual(total_protein, user_preferences.max_protein)
+        self.assertGreaterEqual(total_iron, user_preferences.min_iron)
+        self.assertLessEqual(total_iron, user_preferences.max_iron)
+        self.assertGreaterEqual(total_potassium, user_preferences.min_potassium)
+        self.assertLessEqual(total_potassium, user_preferences.max_potassium)
+        self.assertGreaterEqual(total_carbohydrates, user_preferences.min_carbohydrates)
+        self.assertLessEqual(total_carbohydrates, user_preferences.max_carbohydrates)
+        self.assertGreaterEqual(total_fat, user_preferences.min_fat)
+        self.assertLessEqual(total_fat, user_preferences.max_fat)
+        self.assertGreaterEqual(total_fiber, user_preferences.min_fiber)
+        self.assertLessEqual(total_fiber, user_preferences.max_fiber)
         
     def test_meal_type_coverage(self):
         """Test that at least one meal from each meal type is included."""
@@ -736,7 +811,26 @@ class DayPlanRecipesTests(APITestCase):
             'surname': 'Doe'
         }
         self.user = User.objects.create_user(**self.user_data)
-
+        self.user_nutrient_preferences = UserNutrientPreferences.objects.create(
+            user=self.user,
+            min_calories=200,
+            max_calories=3000,
+            min_sugars=5,
+            max_sugars=50,
+            min_protein=10,
+            max_protein=200,
+            min_iron=5,
+            max_iron=20,
+            min_potassium=1000,
+            max_potassium=4000,
+            min_carbohydrates=1,
+            max_carbohydrates=100,
+            min_fat=1,
+            max_fat=100,
+            min_fiber=1,
+            max_fiber=100
+        )
+        
         # Obtain JWT token pair
         response = self.client.post('/api/token/', {
             'email': self.user_data['email'],
@@ -756,7 +850,7 @@ class DayPlanRecipesTests(APITestCase):
             )
             for i in range(1, 5)
         ]
-
+        self.user.save()
     def test_post_weekly_meal_plan(self):
         # Send POST request to generate weekly meal plan
         response = self.client.post("/api/weekly-meal-plan/")

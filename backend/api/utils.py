@@ -45,7 +45,25 @@ def plan_meals_for_week(user):
 
 
 def select_meals(user, optimize_field='protein', objective='maximize', excluded_ids=[]):
-    # Get user nutrient preferences, or create them if they don't exist
+    user_preferences = UserNutrientPreferences.objects.get(user=user)
+    diet_type = user_preferences.diet_type
+
+    if diet_type == 'low_calories':
+        optimize_field = 'total_calories'
+        objective = 'minimize'
+    elif diet_type == 'high_calories':
+        optimize_field = 'total_calories'
+        objective = 'maximize'
+    elif diet_type.startswith('low_') or diet_type.startswith('high_'):
+        nutrient = diet_type.split('_', 1)[1]
+        
+        valid_nutrients = ['protein', 'fat', 'carbohydrates', 'fiber', 'sugars', 'iron', 'potassium']
+        if nutrient in valid_nutrients:
+            optimize_field = nutrient
+            objective = 'minimize' if diet_type.startswith('low_') else 'maximize'
+    
+    
+    
     preferences, created = UserNutrientPreferences.objects.get_or_create(
         user=user,
         defaults={
