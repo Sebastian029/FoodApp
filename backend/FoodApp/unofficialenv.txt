@@ -1,0 +1,33 @@
+# .env file
+
+# Secret Key
+SECRET_KEY='django-insecure-r-=76@_53eq$-bq#4clzbeawzyetcwi!9zl$$rou01dxi31h&w'
+
+# Debug mode (True or False)
+DEBUG=True
+
+# Allowed hosts (comma-separated)
+ALLOWED_HOSTS=localhost,192.168.0.177
+
+# Database settings
+DB_NAME=mydb
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5433
+
+# Email settings
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.wp.pl
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=inz_2024@wp.pl
+EMAIL_HOST_PASSWORD=Django_inz_password
+DEFAULT_FROM_EMAIL=inz_2024@wp.pl
+
+# JWT settings
+ACCESS_TOKEN_LIFETIME=10
+REFRESH_TOKEN_LIFETIME=7
+ROTATE_REFRESH_TOKENS=True
+BLACKLIST_AFTER_ROTATION=True
+JWT_ALGORITHM=HS256
