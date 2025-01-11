@@ -51,6 +51,12 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         defaults={
             'min_protein': 50,
             'max_protein': 150,
+            'min_fat': 50,
+            'max_fat': 150,
+            'min_carbohydrates': 50,
+            'max_carbohydrates': 150,
+            'min_fiber': 50,
+            'max_fiber': 150,
             'min_calories': 1500,
             'max_calories': 2500,
             'min_sugars': 0,
@@ -71,7 +77,7 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     ).exclude(
         id__in=excluded_ids  # Exclude recipes with IDs in excluded_ids
     ).values(
-        'id', 'title', 'total_calories', 'sugars', 'protein', 'iron', 'potassium', 'meal_type'
+        'id', 'title', 'total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium', 'meal_type'
     )
 
     # Convert recipes into a pandas DataFrame
@@ -82,11 +88,11 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         return Recipe.objects.none()
 
     # Convert string fields to numeric for calculations
-    for field in ['total_calories', 'sugars', 'protein', 'iron', 'potassium']:
+    for field in ['total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium']:
         df[field] = pd.to_numeric(df[field], errors='coerce')
 
     # Drop rows with NaN values in key columns
-    df.dropna(subset=['total_calories', 'sugars', 'protein', 'iron', 'potassium'], inplace=True)
+    df.dropna(subset=['total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium'], inplace=True)
 
     # Set up the optimization problem
     model = LpProblem("Meal_Selection", LpMaximize if objective == 'maximize' else LpMinimize)
@@ -109,6 +115,12 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     model += lpSum(df.loc[i, 'potassium'] * meal_vars[i] for i in df.index) <= preferences.max_potassium, "Max_Potassium"
     model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) >= preferences.min_protein, "Min_Protein"
     model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) <= preferences.max_protein, "Max_Protein"
+    model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) >= preferences.min_fat, "Min_Fat"
+    model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) <= preferences.max_fat, "Max_Fat"
+    model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) >= preferences.min_carbohydrates, "Min_Carbohydrates"
+    model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) <= preferences.max_carbohydrates, "Max__Carbohydrates"
+    model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) >= preferences.min_fiber, "Min_Fiber"
+    model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) <= preferences.max_fiber, "Max_Fiber"
 
     # Limit the number of selected meals to a maximum of 6
     model += lpSum(meal_vars) <= 6, "Max_Meals"
@@ -149,6 +161,9 @@ def upload_recipes_from_csv(file_path):
                         'title': row['name'],
                         'description': row['short_description'],
                         'total_calories': row['total_calories'],
+                        'carbohydrates': row['carbohydrates'],
+                        'fat': row['fat'],
+                        'fiber': row['fiber'],
                         'sugars': row['sugars'],
                         'protein': row['protein'],
                         'iron': row['iron'],

@@ -148,7 +148,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),  # Short-lived access tokens
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Long-lived refresh tokens
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),    # Long-lived refresh tokens
     'ROTATE_REFRESH_TOKENS': True,                    # Whether to rotate refresh tokens
     'BLACKLIST_AFTER_ROTATION': True,                 # Blacklist old refresh tokens after rotation
     'ALGORITHM': 'HS256',                             # JWT signing algorithm (HS256 is standard)

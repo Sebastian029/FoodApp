@@ -48,6 +48,12 @@ class UserNutrientPreferencesSerializer(serializers.ModelSerializer):
     max_sugars = serializers.IntegerField(min_value=1)
     min_protein = serializers.IntegerField(min_value=1)
     max_protein = serializers.IntegerField(min_value=1)
+    min_fat = serializers.IntegerField(min_value=1)
+    max_fat = serializers.IntegerField(min_value=1)
+    min_carbohydrates = serializers.IntegerField(min_value=1)
+    max_carbohydrates = serializers.IntegerField(min_value=1)
+    min_fiber = serializers.IntegerField(min_value=1)
+    max_fiber = serializers.IntegerField(min_value=1)
     min_iron = serializers.IntegerField(min_value=1)
     max_iron = serializers.IntegerField(min_value=1)
     min_potassium = serializers.IntegerField(min_value=1)
@@ -60,7 +66,10 @@ class UserNutrientPreferencesSerializer(serializers.ModelSerializer):
             'min_sugars', 'max_sugars',
             'min_protein', 'max_protein',
             'min_iron', 'max_iron',
-            'min_potassium', 'max_potassium'
+            'min_potassium', 'max_potassium',
+            'min_fat', 'max_fat',
+            'min_carbohydrates', 'max_carbohydrates',
+            'min_fiber', 'max_fiber'
         ]
     
     def validate(self, data):
@@ -70,6 +79,9 @@ class UserNutrientPreferencesSerializer(serializers.ModelSerializer):
             ('min_protein', 'max_protein'),
             ('min_iron', 'max_iron'),
             ('min_potassium', 'max_potassium'),
+            ('min_fat', 'max_fat'),
+            ('min_carbohydrates', 'max_carbohydrates'),
+            ('min_fiber', 'max_fiber')
         ]
         
         for min_field, max_field in nutrient_pairs:
@@ -118,7 +130,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ['id', 'title', 'description', 'total_calories', 'sugars', 'protein', 
+        fields = ['id', 'title', 'description', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber',
                   'iron', 'potassium', 'preparation_time', 'preparation_guide', 
                   'meal_type', 'ingredients']
 

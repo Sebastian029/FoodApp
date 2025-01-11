@@ -13,6 +13,9 @@ class Recipe(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     total_calories = models.CharField(max_length=255) 
+    carbohydrates = models.CharField(max_length=255) 
+    fat = models.CharField(max_length=255) 
+    fiber = models.CharField(max_length=255) 
     sugars = models.CharField(max_length=255)
     protein = models.CharField(max_length=255)
     iron = models.CharField(max_length=255)
@@ -106,6 +109,12 @@ class UserNutrientPreferences(models.Model):
     max_sugars = models.IntegerField(null=True, blank=True)
     min_protein = models.IntegerField(null=True, blank=True)
     max_protein = models.IntegerField(null=True, blank=True)
+    min_fat = models.IntegerField(null=True, blank=True)
+    max_fat = models.IntegerField(null=True, blank=True)
+    min_carbohydrates = models.IntegerField(null=True, blank=True)
+    max_carbohydrates = models.IntegerField(null=True, blank=True)
+    min_fiber = models.IntegerField(null=True, blank=True)
+    max_fiber = models.IntegerField(null=True, blank=True)
     min_iron = models.IntegerField(null=True, blank=True)
     max_iron = models.IntegerField(null=True, blank=True)
     min_potassium = models.IntegerField(null=True, blank=True)
@@ -164,3 +173,22 @@ class UserRecipeUsage(models.Model):
     
     class Meta:
         unique_together = ('user', 'recipe') 
+        
+        
+class DailySummary(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()  # The date of the summary
+    total_calories = models.FloatField(default=0.0)
+    total_carbohydrates = models.FloatField(default=0.0)
+    total_fat = models.FloatField(default=0.0)
+    total_protein = models.FloatField(default=0.0)
+    total_fiber = models.FloatField(default=0.0)
+    total_sugars = models.FloatField(default=0.0)
+    total_iron = models.FloatField(default=0.0)
+    total_potassium = models.FloatField(default=0.0)
+
+    class Meta:
+        unique_together = ('user', 'date')  
+
+    def __str__(self):
+        return f"Daily Summary ({self.date}) for {self.user}"

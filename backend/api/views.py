@@ -674,11 +674,14 @@ class NutrientSummaryView(APIView):
         user = request.user
 
         # Nutrient fields to calculate
-        recipe_fields = ['total_calories', 'sugars', 'protein', 'iron', 'potassium']
+        recipe_fields = ['total_calories', 'sugars', 'protein', 'iron', 'potassium', 'carbohydrates', 'fat', 'fiber']
         preference_fields = {
             'total_calories': ['min_calories', 'max_calories'],
             'sugars': ['min_sugars', 'max_sugars'],
             'protein': ['min_protein', 'max_protein'],
+            'fat': ['min_fat', 'max_fat'],
+            'carbohydrates': ['min_carbohydrates', 'max_carbohydrates'],
+            'fiber': ['min_fiber', 'max_fiber'],
             'iron': ['min_iron', 'max_iron'],
             'potassium': ['min_potassium', 'max_potassium']
         }
