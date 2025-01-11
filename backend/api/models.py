@@ -202,3 +202,21 @@ class WeeklySummary(models.Model):
 
     def __str__(self):
         return f"Weekly Summary ({self.week_start} - {self.week_end}) for {self.user}"
+    
+class DayPlanItem(models.Model):
+    day_plan_recipe = models.ForeignKey(DayPlanRecipes, on_delete=models.CASCADE, related_name='items')
+    item_name = models.CharField(max_length=255)
+    total_calories = models.FloatField()
+    total_protein = models.FloatField()
+    total_fats = models.FloatField()
+    total_carbs = models.FloatField()
+    total_sugars = models.FloatField()
+    total_iron = models.FloatField()
+    total_potassium = models.FloatField()
+    quantity = models.PositiveIntegerField(default=1)  
+
+    class Meta:
+        unique_together = ('day_plan_recipe', 'item_name')  # Prevent duplicate items for the same recipe in the day plan
+
+    def __str__(self):
+        return f"{self.item_name} ({self.total_calories} cal)"

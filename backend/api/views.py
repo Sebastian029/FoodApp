@@ -16,7 +16,7 @@ from .serializers import RegisterSerializer
 from .models import (User, Recipe, Ingredient, RecipeIngredients,
                      DayPlan, DayPlanRecipes, RatedRecipes, UserWeight,
                      DislikedIngredients, UserIngredients, UserNutrientPreferences,
-                     Cart, Ingredient, CartIngredient
+                     Cart, Ingredient, CartIngredient, DayPlanItem
 )
 from .serializers import (
     UserSerializer, RecipeSerializer, IngredientSerializer, 
@@ -1036,3 +1036,143 @@ class WeeklyNutritionView222(APIView):
             current_date = week_end + timedelta(days=1)
         
         return Response(response_data)
+    
+class DayPlanItemView(APIView):
+    """
+    Handle adding, retrieving, and deleting manual items (like snacks) to/from a day's plan for the authenticated user.
+    """
+
+    def post(self, request):
+        """
+        Add manual items (e.g., snacks) to the day plan for the authenticated user.
+        """
+        user = request.user  # Get the logged-in user
+        date = request.data.get('date')
+        items = request.data.get('items', [])
+
+        if not date or not items:
+            return Response({"detail": "Date and items are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convert date from string to date object
+        try:
+            plan_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"detail": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve or create a day plan for this date
+        day_plan, created = DayPlan.objects.get_or_create(user=user, date=plan_date)
+
+        # Iterate over items and add them to the day plan
+        for item in items:
+            recipe_id = item.get('recipe_id')
+            recipe = Recipe.objects.get(id=recipe_id)
+
+            # Create or update the DayPlanRecipes entry
+            day_plan_recipe, created = DayPlanRecipes.objects.get_or_create(day_plan=day_plan, recipe=recipe)
+
+            # Create the DayPlanItem entry for each item
+            DayPlanItem.objects.create(
+                day_plan_recipe=day_plan_recipe,
+                item_name=item['item_name'],
+                total_calories=item['total_calories'],
+                total_protein=item['total_protein'],
+                total_fats=item['total_fats'],
+                total_carbs=item['total_carbs'],
+                total_sugars=item['total_sugars'],
+                total_iron=item['total_iron'],
+                total_potassium=item['total_potassium'],
+            )
+
+        return Response({"detail": "Items added successfully."}, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        """
+        Retrieve all manual items (e.g., snacks) added to the day's plan for the authenticated user.
+        """
+        user = request.user  # Ensure the user is authenticated
+
+        # Get today's date and the next 6 days
+        today = datetime.today().date()
+        end_date = today + timedelta(days=6)
+
+        # Query all day plan items for the user within the 7-day range
+        items = DayPlanItem.objects.filter(
+            day_plan_recipe__day_plan__user=user,
+            day_plan_recipe__day_plan__date__range=(today, end_date)
+        ).select_related('day_plan_recipe', 'day_plan_recipe__day_plan', 'day_plan_recipe__recipe')
+
+        # Group items by day and aggregate quantities
+        items_by_day = {}
+        for item in items:
+            plan_date = item.day_plan_recipe.day_plan.date.strftime('%Y-%m-%d')  # Convert date to string
+            if plan_date not in items_by_day:
+                items_by_day[plan_date] = []
+
+            # Aggregate item data, including quantity
+            existing_item = next((i for i in items_by_day[plan_date] if i['item_name'] == item.item_name), None)
+            if existing_item:
+                existing_item['quantity'] += item.quantity  # Update the quantity if item already exists
+            else:
+                items_by_day[plan_date].append({
+                    'id': item.id,
+                    'item_name': item.item_name,
+                    'total_calories': item.total_calories,
+                    'total_protein': item.total_protein,
+                    'total_fats': item.total_fats,
+                    'total_carbs': item.total_carbs,
+                    'total_sugars': item.total_sugars,
+                    'total_iron': item.total_iron,
+                    'total_potassium': item.total_potassium,
+                    'quantity': item.quantity,
+                })
+
+        return Response({"items_by_day": items_by_day}, status=status.HTTP_200_OK)
+
+    def patch(self, request, item_id):
+        """
+        Update the quantity of a manual item (e.g., snack) for the authenticated user.
+        """
+        user = request.user  # Ensure the user is authenticated
+        try:
+            # Retrieve the item, ensuring it's associated with the user
+            item = DayPlanItem.objects.get(id=item_id)
+
+            # Check if the item belongs to a valid day plan for the user
+            if item.day_plan_recipe.day_plan.user != user:
+                return Response({"detail": "Item does not belong to the authenticated user."}, 
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Update the quantity
+            quantity = request.data.get('quantity')
+            if quantity is None or quantity < 1:
+                return Response({"detail": "Quantity must be a positive integer."}, 
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            item.quantity = quantity
+            item.save()
+
+            return Response({"detail": "Item quantity updated successfully."}, status=status.HTTP_200_OK)
+
+        except DayPlanItem.DoesNotExist:
+            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    def delete(self, request, item_id):
+        """
+        Delete a manual item (e.g., snack) from the day's plan based on item ID.
+        """
+        user = request.user  # Ensure the user is authenticated
+        try:
+            # Retrieve the item, ensuring it's associated with the user
+            item = DayPlanItem.objects.get(id=item_id)
+
+            # Check if the item belongs to a valid day plan for the user
+            if item.day_plan_recipe.day_plan.user != user:
+                return Response({"detail": "Item does not belong to the authenticated user."}, 
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # If the item belongs to the user, delete it
+            item.delete()
+            return Response({"detail": "Item deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+        except DayPlanItem.DoesNotExist:
+            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)

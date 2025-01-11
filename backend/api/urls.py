@@ -8,7 +8,7 @@ from .views import (
     UserWeightDetailView,
     UserIngredientsListCreateView, UserIngredientsDetailView, UserNutrientPreferencesView,
     UserDislikedIngredientsView, RecipeListView, RecipeTypeView, UpdateWeightView, CanUpdateWeightView,
-    CartAPIView, WeeklyMealPlanView, ResetMealPlansView, UserWeightListView, DietTypeView, DietChoicesView, NutrientSummaryView, WeeklyNutritionView
+    CartAPIView, WeeklyMealPlanView, ResetMealPlansView, UserWeightListView, DietTypeView, DietChoicesView, NutrientSummaryView, WeeklyNutritionView, DayPlanItemView
 )
 
 from .views import upload_recipes_csv
@@ -42,7 +42,10 @@ urlpatterns = [
     path('diet-choices/', DietChoicesView.as_view(), name='user-diet-choices'),
     path('nutrient-summary/', NutrientSummaryView.as_view(), name='nutrient-summary'),
     path('weekly-nutrition/', WeeklyNutritionView.as_view(), name='weekly-nutrition'),
-    
+    path('day-plan-items/', DayPlanItemView.as_view(), name='day-plan-items'),
+    path('day-plan-items/<int:item_id>/', DayPlanItemView.as_view(), name='delete-day-plan-item'),
+    path('weekly-plan/items/<int:item_id>/', DayPlanItemView.as_view(), name='update_item_quantity'),
+  
 
     path('recipe-ingredients/', RecipeIngredientsListCreateView.as_view(), name='recipeingredients-list'),
     path('recipe-ingredients/<int:pk>/', RecipeIngredientsDetailView.as_view(), name='recipeingredients-detail'),
