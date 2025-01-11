@@ -67,22 +67,22 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     preferences, created = UserNutrientPreferences.objects.get_or_create(
         user=user,
         defaults={
-            'min_protein': 50,
-            'max_protein': 150,
-            'min_fat': 50,
-            'max_fat': 150,
-            'min_carbohydrates': 50,
-            'max_carbohydrates': 150,
-            'min_fiber': 50,
-            'max_fiber': 150,
+            'min_protein': 0,
+            'max_protein': 0,
+            'min_fat': 0,
+            'max_fat': 0,
+            'min_carbohydrates': 0,
+            'max_carbohydrates': 0,
+            'min_fiber': 0,
+            'max_fiber': 0,
             'min_calories': 1500,
             'max_calories': 2500,
             'min_sugars': 0,
             'max_sugars': 100,
             'min_iron': 0,
-            'max_iron': 20,
-            'min_potassium': 1000,
-            'max_potassium': 4000
+            'max_iron': 0,
+            'min_potassium': 0,
+            'max_potassium': 0
         }
     )
 

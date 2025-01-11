@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from datetime import timedelta
-
+from django.utils import timezone
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=100)
@@ -204,19 +204,18 @@ class WeeklySummary(models.Model):
         return f"Weekly Summary ({self.week_start} - {self.week_end}) for {self.user}"
     
 class DayPlanItem(models.Model):
-    day_plan_recipe = models.ForeignKey(DayPlanRecipes, on_delete=models.CASCADE, related_name='items')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     item_name = models.CharField(max_length=255)
     total_calories = models.FloatField()
-    total_protein = models.FloatField()
-    total_fats = models.FloatField()
-    total_carbs = models.FloatField()
-    total_sugars = models.FloatField()
-    total_iron = models.FloatField()
-    total_potassium = models.FloatField()
-    quantity = models.PositiveIntegerField(default=1)  
-
-    class Meta:
-        unique_together = ('day_plan_recipe', 'item_name')  # Prevent duplicate items for the same recipe in the day plan
+    total_protein = models.FloatField(default=0)
+    total_fats = models.FloatField(default=0)
+    total_carbs = models.FloatField(default=0)
+    total_fiber = models.FloatField(default=0)
+    total_sugars = models.FloatField(default=0)
+    total_iron = models.FloatField(default=0)
+    total_potassium = models.FloatField(default=0)
+    quantity = models.PositiveIntegerField(default=1)
+    date = models.DateField(default=timezone.now)  
 
     def __str__(self):
-        return f"{self.item_name} ({self.total_calories} cal)"
+        return f"{self.item_name} - {self.total_calories} kcal"
