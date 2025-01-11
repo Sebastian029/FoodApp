@@ -122,24 +122,38 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     if optimize_field in df.columns:
         model += lpSum(df.loc[i, optimize_field] * meal_vars[i] for i in df.index), f"{objective.capitalize()}_{optimize_field.capitalize()}"
 
-    # Apply constraints from user preferences
-    model += lpSum(df.loc[i, 'total_calories'] * meal_vars[i] for i in df.index) >= preferences.min_calories, "Min_Calories"
-    model += lpSum(df.loc[i, 'total_calories'] * meal_vars[i] for i in df.index) <= preferences.max_calories, "Max_Calories"
-    model += lpSum(df.loc[i, 'sugars'] * meal_vars[i] for i in df.index) >= preferences.min_sugars, "Min_Sugars"
-    model += lpSum(df.loc[i, 'sugars'] * meal_vars[i] for i in df.index) <= preferences.max_sugars, "Max_Sugars"
-    model += lpSum(df.loc[i, 'iron'] * meal_vars[i] for i in df.index) >= preferences.min_iron, "Min_Iron"
-    model += lpSum(df.loc[i, 'iron'] * meal_vars[i] for i in df.index) <= preferences.max_iron, "Max_Iron"
-    model += lpSum(df.loc[i, 'potassium'] * meal_vars[i] for i in df.index) >= preferences.min_potassium, "Min_Potassium"
-    model += lpSum(df.loc[i, 'potassium'] * meal_vars[i] for i in df.index) <= preferences.max_potassium, "Max_Potassium"
-    model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) >= preferences.min_protein, "Min_Protein"
-    model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) <= preferences.max_protein, "Max_Protein"
-    model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) >= preferences.min_fat, "Min_Fat"
-    model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) <= preferences.max_fat, "Max_Fat"
-    model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) >= preferences.min_carbohydrates, "Min_Carbohydrates"
-    model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) <= preferences.max_carbohydrates, "Max__Carbohydrates"
-    model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) >= preferences.min_fiber, "Min_Fiber"
-    model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) <= preferences.max_fiber, "Max_Fiber"
 
+    if preferences.min_calories > 0 and preferences.max_calories > 0:
+        model += lpSum(df.loc[i, 'total_calories'] * meal_vars[i] for i in df.index) >= preferences.min_calories, "Min_Calories"
+        model += lpSum(df.loc[i, 'total_calories'] * meal_vars[i] for i in df.index) <= preferences.max_calories, "Max_Calories"
+    
+    if preferences.min_sugars > 0 and preferences.max_sugars > 0:
+        model += lpSum(df.loc[i, 'sugars'] * meal_vars[i] for i in df.index) >= preferences.min_sugars, "Min_Sugars"
+        model += lpSum(df.loc[i, 'sugars'] * meal_vars[i] for i in df.index) <= preferences.max_sugars, "Max_Sugars"
+    
+    if preferences.min_iron > 0 and preferences.max_iron > 0:
+        model += lpSum(df.loc[i, 'iron'] * meal_vars[i] for i in df.index) >= preferences.min_iron, "Min_Iron"
+        model += lpSum(df.loc[i, 'iron'] * meal_vars[i] for i in df.index) <= preferences.max_iron, "Max_Iron"
+    
+    if preferences.min_potassium > 0 and preferences.max_potassium > 0:
+        model += lpSum(df.loc[i, 'potassium'] * meal_vars[i] for i in df.index) >= preferences.min_potassium, "Min_Potassium"
+        model += lpSum(df.loc[i, 'potassium'] * meal_vars[i] for i in df.index) <= preferences.max_potassium, "Max_Potassium"
+    
+    if preferences.min_protein > 0 and preferences.max_protein > 0:
+        model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) >= preferences.min_protein, "Min_Protein"
+        model += lpSum(df.loc[i, 'protein'] * meal_vars[i] for i in df.index) <= preferences.max_protein, "Max_Protein"
+    
+    if preferences.min_fat > 0 and preferences.max_fat > 0:
+        model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) >= preferences.min_fat, "Min_Fat"
+        model += lpSum(df.loc[i, 'fat'] * meal_vars[i] for i in df.index) <= preferences.max_fat, "Max_Fat"
+    
+    if preferences.min_carbohydrates > 0 and preferences.max_carbohydrates > 0:
+        model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) >= preferences.min_carbohydrates, "Min_Carbohydrates"
+        model += lpSum(df.loc[i, 'carbohydrates'] * meal_vars[i] for i in df.index) <= preferences.max_carbohydrates, "Max_Carbohydrates"
+    
+    if preferences.min_fiber > 0 and preferences.max_fiber > 0:
+        model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) >= preferences.min_fiber, "Min_Fiber"
+        model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) <= preferences.max_fiber, "Max_Fiber"
     # Limit the number of selected meals to a maximum of 6
     model += lpSum(meal_vars) <= 6, "Max_Meals"
 

@@ -42,22 +42,22 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class UserNutrientPreferencesSerializer(serializers.ModelSerializer):
-    min_calories = serializers.IntegerField(min_value=1)
-    max_calories = serializers.IntegerField(min_value=1)
-    min_sugars = serializers.IntegerField(min_value=1)
-    max_sugars = serializers.IntegerField(min_value=1)
-    min_protein = serializers.IntegerField(min_value=1)
-    max_protein = serializers.IntegerField(min_value=1)
-    min_fat = serializers.IntegerField(min_value=1)
-    max_fat = serializers.IntegerField(min_value=1)
-    min_carbohydrates = serializers.IntegerField(min_value=1)
-    max_carbohydrates = serializers.IntegerField(min_value=1)
-    min_fiber = serializers.IntegerField(min_value=1)
-    max_fiber = serializers.IntegerField(min_value=1)
-    min_iron = serializers.IntegerField(min_value=1)
-    max_iron = serializers.IntegerField(min_value=1)
-    min_potassium = serializers.IntegerField(min_value=1)
-    max_potassium = serializers.IntegerField(min_value=1)
+    min_calories = serializers.IntegerField(min_value=0)
+    max_calories = serializers.IntegerField(min_value=0)
+    min_sugars = serializers.IntegerField(min_value=0)
+    max_sugars = serializers.IntegerField(min_value=0)
+    min_protein = serializers.IntegerField(min_value=0)
+    max_protein = serializers.IntegerField(min_value=0)
+    min_fat = serializers.IntegerField(min_value=0)
+    max_fat = serializers.IntegerField(min_value=0)
+    min_carbohydrates = serializers.IntegerField(min_value=0)
+    max_carbohydrates = serializers.IntegerField(min_value=0)
+    min_fiber = serializers.IntegerField(min_value=0)
+    max_fiber = serializers.IntegerField(min_value=0)
+    min_iron = serializers.IntegerField(min_value=0)
+    max_iron = serializers.IntegerField(min_value=0)
+    min_potassium = serializers.IntegerField(min_value=0)
+    max_potassium = serializers.IntegerField(min_value=0)
 
     class Meta:
         model = UserNutrientPreferences
