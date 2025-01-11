@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from datetime import timedelta
+
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=100)
@@ -177,9 +179,10 @@ class UserRecipeUsage(models.Model):
         unique_together = ('user', 'recipe') 
         
         
-class DailySummary(models.Model):
+class WeeklySummary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField()  # The date of the summary
+    week_start = models.DateField()  
+    week_end = models.DateField()  
     total_calories = models.FloatField(default=0.0)
     total_carbohydrates = models.FloatField(default=0.0)
     total_fat = models.FloatField(default=0.0)
@@ -190,7 +193,12 @@ class DailySummary(models.Model):
     total_potassium = models.FloatField(default=0.0)
 
     class Meta:
-        unique_together = ('user', 'date')  
+        unique_together = ('user', 'week_start')
+
+    def save(self, *args, **kwargs):
+
+        self.week_end = self.week_start + timedelta(days=6)
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Daily Summary ({self.date}) for {self.user}"
+        return f"Weekly Summary ({self.week_start} - {self.week_end}) for {self.user}"

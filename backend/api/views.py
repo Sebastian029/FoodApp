@@ -732,3 +732,307 @@ class NutrientSummaryView(APIView):
 
         return Response({"comparisons": comparisons})
 
+from decimal import Decimal
+from django.db.models.functions import Cast
+class WeeklyNutritionView(APIView):
+    def get_date_range(self, request):
+        """Get date range from params or default to last 5 weeks"""
+        try:
+            if request.query_params.get('start_date') and request.query_params.get('end_date'):
+                start_date = datetime.strptime(
+                    request.query_params.get('start_date'), 
+                    '%Y-%m-%d'
+                ).date()
+                end_date = datetime.strptime(
+                    request.query_params.get('end_date'), 
+                    '%Y-%m-%d'
+                ).date()
+            else:
+                # Get current date
+                end_date = datetime.now().date()
+                # Get Monday of current week
+                end_date = end_date - timedelta(days=end_date.weekday())
+                # Get end of week (Sunday)
+                end_date = end_date + timedelta(days=6)
+                # Start date is 5 weeks ago from start of current week
+                start_date = end_date - timedelta(weeks=4) - timedelta(days=6)
+            
+            return start_date, end_date
+            
+        except (TypeError, ValueError):
+            raise ValueError("Invalid date format. Use YYYY-MM-DD")
+    def get_cumulative_nutrition(self, user, start_date, current_date):
+        """Calculate cumulative nutrition from start_date to current_date"""
+        day_plans = DayPlan.objects.filter(
+            user=user,
+            date__range=[start_date, current_date]
+        )
+        
+        nutrition_totals = DayPlanRecipes.objects.filter(
+            day_plan__in=day_plans
+        ).aggregate(
+            # Cast CharFields to integers before summing
+           calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
+            carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
+            fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
+            protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
+            fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
+            sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
+            iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
+            potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
+        )
+            
+        # Convert None values to Decimal('0')
+        return {
+            key: Decimal('0') if value is None else value 
+            for key, value in nutrition_totals.items()
+        }
+
+    def get_daily_nutrition(self, user, date):
+        """Calculate nutrition for a specific day"""
+        day_plan = DayPlan.objects.filter(
+            user=user,
+            date=date
+        ).first()
+        
+        if not day_plan:
+            return {
+                'calories': Decimal('0'),
+                'carbohydrates': Decimal('0'),
+                'fat': Decimal('0'),
+                'protein': Decimal('0'),
+                'fiber': Decimal('0'),
+                'sugars': Decimal('0'),
+                'iron': Decimal('0'),
+                'potassium': Decimal('0')
+            }
+        
+        nutrition_totals = DayPlanRecipes.objects.filter(
+            day_plan=day_plan
+        ).aggregate(
+            # Cast CharFields to integers before summing
+           calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
+            carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
+            fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
+            protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
+            fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
+            sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
+            iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
+            potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
+        )
+          
+        
+        # Convert None values to Decimal('0')
+        return {
+            key: Decimal('0') if value is None else value 
+            for key, value in nutrition_totals.items()
+        }
+
+    def serialize_nutrition_values(self, nutrition_data):
+        """Convert Decimal values to strings for JSON serialization"""
+        return {
+            key: str(value) if isinstance(value, Decimal) else value
+            for key, value in nutrition_data.items()
+        }
+
+    def get(self, request):
+        try:
+            start_date, end_date = self.get_date_range(request)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        response_data = []
+        
+        # Iterate through weeks
+        current_date = start_date
+        while current_date <= end_date:
+            # Get week start (Monday) and end (Sunday)
+            week_start = current_date - timedelta(days=current_date.weekday())
+            week_end = min(week_start + timedelta(days=6), end_date)
+            
+            week_data = {
+                'week_start': week_start.strftime('%Y-%m-%d'),
+                'week_end': week_end.strftime('%Y-%m-%d'),
+                'days': []
+            }
+            
+            # Calculate daily cumulative totals for the week
+            current_week_date = week_start
+            while current_week_date <= week_end:
+                daily_nutrition = self.get_daily_nutrition(user, current_week_date)
+                cumulative_nutrition = self.get_cumulative_nutrition(
+                    user, 
+                    week_start, 
+                    current_week_date
+                )
+                
+                day_data = {
+                    'date': current_week_date.strftime('%Y-%m-%d'),
+                    'day_of_week': current_week_date.strftime('%A'),
+                    'daily_totals': self.serialize_nutrition_values(daily_nutrition),
+                    'cumulative_totals': self.serialize_nutrition_values(cumulative_nutrition)
+                }
+                week_data['days'].append(day_data)
+                current_week_date += timedelta(days=1)
+            
+            response_data.append(week_data)
+            current_date = week_end + timedelta(days=1)
+        
+        return Response(response_data)
+    
+    
+    
+    
+class WeeklyNutritionView222(APIView):
+    def get_date_range(self, request):
+        """Get date range from params or default to last 5 weeks"""
+        try:
+            if request.query_params.get('start_date') and request.query_params.get('end_date'):
+                start_date = datetime.strptime(
+                    request.query_params.get('start_date'), 
+                    '%Y-%m-%d'
+                ).date()
+                end_date = datetime.strptime(
+                    request.query_params.get('end_date'), 
+                    '%Y-%m-%d'
+                ).date()
+            else:
+                # Get current date
+                end_date = datetime.now().date()
+                # Get Monday of current week
+                end_date = end_date - timedelta(days=end_date.weekday())
+                # Get end of week (Sunday)
+                end_date = end_date + timedelta(days=6)
+                # Start date is 5 weeks ago from start of current week
+                start_date = end_date - timedelta(weeks=4) - timedelta(days=6)
+            
+            return start_date, end_date
+            
+        except (TypeError, ValueError):
+            raise ValueError("Invalid date format. Use YYYY-MM-DD")
+    def get_cumulative_nutrition(self, user, start_date, current_date):
+        """Calculate cumulative nutrition from start_date to current_date"""
+        day_plans = DayPlan.objects.filter(
+            user=user,
+            date__range=[start_date, current_date]
+        )
+        
+        nutrition_totals = DayPlanRecipes.objects.filter(
+            day_plan__in=day_plans
+        ).aggregate(
+            # Cast CharFields to integers before summing
+           calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
+            carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
+            fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
+            protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
+            fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
+            sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
+            iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
+            potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
+        )
+            
+        # Convert None values to Decimal('0')
+        return {
+            key: Decimal('0') if value is None else value 
+            for key, value in nutrition_totals.items()
+        }
+
+    def get_daily_nutrition(self, user, date):
+        """Calculate nutrition for a specific day"""
+        day_plan = DayPlan.objects.filter(
+            user=user,
+            date=date
+        ).first()
+        
+        if not day_plan:
+            return {
+                'calories': Decimal('0'),
+                'carbohydrates': Decimal('0'),
+                'fat': Decimal('0'),
+                'protein': Decimal('0'),
+                'fiber': Decimal('0'),
+                'sugars': Decimal('0'),
+                'iron': Decimal('0'),
+                'potassium': Decimal('0')
+            }
+        
+        nutrition_totals = DayPlanRecipes.objects.filter(
+            day_plan=day_plan
+        ).aggregate(
+            # Cast CharFields to integers before summing
+           calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
+            carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
+            fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
+            protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
+            fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
+            sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
+            iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
+            potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
+        )
+          
+        
+        # Convert None values to Decimal('0')
+        return {
+            key: Decimal('0') if value is None else value 
+            for key, value in nutrition_totals.items()
+        }
+
+    def serialize_nutrition_values(self, nutrition_data):
+        """Convert Decimal values to strings for JSON serialization"""
+        return {
+            key: str(value) if isinstance(value, Decimal) else value
+            for key, value in nutrition_data.items()
+        }
+
+    def get(self, request):
+        try:
+            start_date, end_date = self.get_date_range(request)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        response_data = []
+        
+        # Iterate through weeks
+        current_date = start_date
+        while current_date <= end_date:
+            # Get week start (Monday) and end (Sunday)
+            week_start = current_date - timedelta(days=current_date.weekday())
+            week_end = min(week_start + timedelta(days=6), end_date)
+            
+            week_data = {
+                'week_start': week_start.strftime('%Y-%m-%d'),
+                'week_end': week_end.strftime('%Y-%m-%d'),
+                'days': []
+            }
+            
+            # Calculate daily cumulative totals for the week
+            current_week_date = week_start
+            while current_week_date <= week_end:
+                daily_nutrition = self.get_daily_nutrition(user, current_week_date)
+                cumulative_nutrition = self.get_cumulative_nutrition(
+                    user, 
+                    week_start, 
+                    current_week_date
+                )
+                
+                day_data = {
+                    'date': current_week_date.strftime('%Y-%m-%d'),
+                    'day_of_week': current_week_date.strftime('%A'),
+                    'daily_totals': self.serialize_nutrition_values(daily_nutrition),
+                    'cumulative_totals': self.serialize_nutrition_values(cumulative_nutrition)
+                }
+                week_data['days'].append(day_data)
+                current_week_date += timedelta(days=1)
+            
+            response_data.append(week_data)
+            current_date = week_end + timedelta(days=1)
+        
+        return Response(response_data)
