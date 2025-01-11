@@ -25,7 +25,55 @@ import api from "../utils/api";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
+const NutrientItem = ({ label, data, unit }) => {
+  const range = data.max_7_days - data.min_7_days;
+  const percentage = Math.min(
+    Math.max(((data.total - data.min_7_days) / range) * 100, 0),
+    100
+  );
 
+  // Check if min and max are both 0
+  const isGray = data.min_7_days === 0 && data.max_7_days === 0;
+
+  return (
+    <View className="mb-6">
+      <View className="flex-row justify-between mb-2">
+        <Text
+          className={`text-base font-medium ${
+            isGray ? "text-gray-400" : "text-gray-600"
+          }`}
+        >
+          {label}
+        </Text>
+        <Text
+          className={`text-base ${isGray ? "text-gray-400" : "text-gray-600"}`}
+        >
+          {data.total.toLocaleString()} {unit}
+        </Text>
+      </View>
+
+      <View className="h-3 bg-gray-100 rounded-full overflow-hidden">
+        <View
+          className="h-full bg-[#F5A623]"
+          style={{ width: `${percentage}%` }}
+        />
+      </View>
+
+      <View className="flex-row justify-between mt-2">
+        <Text
+          className={`text-sm ${isGray ? "text-gray-400" : "text-gray-500"}`}
+        >
+          Min: {data.min_7_days.toLocaleString()} {unit}
+        </Text>
+        <Text
+          className={`text-sm ${isGray ? "text-gray-400" : "text-gray-500"}`}
+        >
+          Max: {data.max_7_days.toLocaleString()} {unit}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const MealItem = ({ recipe, onRefresh, onPress }) => (
   <TouchableOpacity
