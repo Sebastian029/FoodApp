@@ -85,14 +85,9 @@ const WeekSummary = ({ weekData, weekRange }) => {
   currentDate.setHours(0, 0, 0, 0);
   weekStart.setHours(0, 0, 0, 0);
   weekEnd.setHours(0, 0, 0, 0);
-  console.log(currentDate);
-  console.log(weekStart);
-  console.log(weekEnd);
-
+ 
   const isCurrentWeek = currentDate >= weekStart && currentDate <= weekEnd;
-  console.log(isCurrentWeek);
-  console.log("");
-
+ 
   const targetDayData = isCurrentWeek
     ? weekData.days.find(
         (day) =>
