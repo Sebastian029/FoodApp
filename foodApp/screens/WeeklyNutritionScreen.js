@@ -82,20 +82,33 @@ const WeekSummary = ({ weekData, weekRange }) => {
   const currentDate = new Date();
   const weekStart = new Date(weekRange.week_start);
   const weekEnd = new Date(weekRange.week_end);
+  currentDate.setHours(0, 0, 0, 0);
+  weekStart.setHours(0, 0, 0, 0);
+  weekEnd.setHours(0, 0, 0, 0);
+  console.log(currentDate);
+  console.log(weekStart);
+  console.log(weekEnd);
 
   const isCurrentWeek = currentDate >= weekStart && currentDate <= weekEnd;
+  console.log(isCurrentWeek);
+  console.log("");
 
-  let targetDayData;
-  if (isCurrentWeek) {
-    targetDayData = weekData.days.find((day) => {
-      const dayDate = new Date(day.date);
-      return dayDate.toDateString() === currentDate.toDateString();
-    });
-  } else {
-    targetDayData = weekData.days[weekData.days.length - 1];
-  }
+  const targetDayData = isCurrentWeek
+    ? weekData.days.find(
+        (day) =>
+          new Date(day.date).toDateString() === currentDate.toDateString()
+      )
+    : weekData.days[weekData.days.length - 1];
 
   if (!targetDayData) return null;
+
+  const cumulativeTotals = Object.keys(targetDayData.cumulative_totals).reduce(
+    (acc, key) => ({
+      ...acc,
+      [key]: parseFloat(targetDayData.cumulative_totals[key]),
+    }),
+    {}
+  );
 
   return (
     <View className="bg-[#F5A623] rounded-xl p-4 mb-6">
@@ -111,9 +124,7 @@ const WeekSummary = ({ weekData, weekRange }) => {
           <View key={nutrient.key} className="flex-row justify-between">
             <Text className="text-white">{nutrient.label}</Text>
             <Text className="text-white font-medium">
-              {parseFloat(
-                targetDayData.cumulative_totals[nutrient.key]
-              ).toLocaleString()}{" "}
+              {cumulativeTotals[nutrient.key]?.toLocaleString() || "0"}{" "}
               {nutrient.unit}
             </Text>
           </View>
@@ -174,6 +185,9 @@ export default function WeeklyNutritionScreen({ navigation }) {
       const currentWeekIndex = allWeeks.findIndex((week) => {
         const weekStart = new Date(week.week_start);
         const weekEnd = new Date(week.week_end);
+        currentDate.setHours(0, 0, 0, 0);
+        weekStart.setHours(0, 0, 0, 0);
+        weekEnd.setHours(0, 0, 0, 0);
         return currentDate >= weekStart && currentDate <= weekEnd;
       });
 

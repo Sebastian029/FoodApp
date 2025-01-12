@@ -310,7 +310,7 @@ export default function DietRestrictionsScreen({ navigation }) {
           disabled={loading}
           className="flex-row justify-between items-center p-4 bg-red-50 rounded-lg mb-6"
         >
-          <Text className="text-red-600">Reset planned meals</Text>
+          <Text className="text-red-600">Re-plan your diet</Text>
           <ChevronRight stroke="#DC2626" size={20} />
         </TouchableOpacity>
 

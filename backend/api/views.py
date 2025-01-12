@@ -813,15 +813,21 @@ class WeeklyNutritionView(APIView):
 
     def get_daily_nutrition(self, user, date):
         """Calculate nutrition for a specific day"""
+        # Define expected nutrition keys
+        nutrition_keys = [
+            'calories', 'carbohydrates', 'fat', 'protein',
+            'fiber', 'sugars', 'iron', 'potassium'
+        ]
+        
         # Get nutrition from DayPlanRecipes
         day_plan = DayPlan.objects.filter(
             user=user,
             date=date
         ).first()
         
-        recipe_nutrition = {}
+        recipe_nutrition = {key: Decimal('0') for key in nutrition_keys}
         if day_plan:
-            recipe_nutrition = DayPlanRecipes.objects.filter(
+            recipe_values = DayPlanRecipes.objects.filter(
                 day_plan=day_plan
             ).aggregate(
                 calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
@@ -833,6 +839,9 @@ class WeeklyNutritionView(APIView):
                 iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
                 potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
             )
+            for key in nutrition_keys:
+                if recipe_values.get(key) is not None:
+                    recipe_nutrition[key] = Decimal(str(recipe_values[key]))
 
         # Get nutrition from DayPlanItems
         item_nutrition = DayPlanItem.objects.filter(
@@ -851,10 +860,9 @@ class WeeklyNutritionView(APIView):
 
         # Combine both results
         combined_nutrition = {}
-        for key in recipe_nutrition.keys():
-            recipe_value = Decimal('0') if recipe_nutrition.get(key) is None else Decimal(str(recipe_nutrition[key]))
+        for key in nutrition_keys:
             item_value = Decimal('0') if item_nutrition.get(key) is None else Decimal(str(item_nutrition[key]))
-            combined_nutrition[key] = recipe_value + item_value
+            combined_nutrition[key] = recipe_nutrition[key] + item_value
 
         return combined_nutrition
 

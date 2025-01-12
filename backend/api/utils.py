@@ -5,6 +5,8 @@ from api.models import Recipe, Ingredient, RecipeIngredients, DislikedIngredient
 from django.contrib.auth import get_user_model
 import csv
 from django.db import transaction
+from random import sample
+
 
 
 # api/utils.py
@@ -78,7 +80,7 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
             'min_calories': 1500,
             'max_calories': 2500,
             'min_sugars': 0,
-            'max_sugars': 100,
+            'max_sugars': 0,
             'min_iron': 0,
             'max_iron': 0,
             'min_potassium': 0,
@@ -89,13 +91,20 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
     # Get list of disliked ingredients for the user
     disliked_ingredients = DislikedIngredients.objects.filter(user=user).values_list('ingredient_id', flat=True)
 
-    # Query recipes, excluding those with disliked ingredients and excluded IDs
+    
+    percentage_to_reactivate = 10  
+    num_ids_to_reactivate = int(len(excluded_ids) * (percentage_to_reactivate / 100))
+
+    # Randomly select IDs to remove from excluded_ids
+    reactivated_ids = sample(list(excluded_ids), num_ids_to_reactivate)
+
+    # Filter recipes, excluding only the remaining IDs
     recipes = Recipe.objects.exclude(
         recipeingredients__ingredient__in=disliked_ingredients
     ).exclude(
-        id__in=excluded_ids  # Exclude recipes with IDs in excluded_ids
+        id__in=[eid for eid in excluded_ids if eid not in reactivated_ids]
     ).values(
-        'id', 'title', 'total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium', 'meal_type'
+        'id', 'title', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber', 'iron', 'potassium', 'meal_type'
     )
 
     # Convert recipes into a pandas DataFrame

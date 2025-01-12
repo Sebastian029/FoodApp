@@ -43,6 +43,7 @@ const NutrientItem = ({ label, data, unit }) => {
 
   return (
     <View className="mb-6">
+      {/* Label and Total */}
       <View className="flex-row justify-between mb-2">
         <Text
           className={`text-base font-medium ${
@@ -58,13 +59,15 @@ const NutrientItem = ({ label, data, unit }) => {
         </Text>
       </View>
 
+      {/* Progress Bar */}
       <View className="h-3 bg-gray-100 rounded-full overflow-hidden">
         <View
-          className="h-full bg-[#F5A623]"
-          style={{ width: `${percentage}%` }}
+          className={`h-full ${isGray ? "bg-gray-300" : "bg-[#F5A623]"}`}
+          style={{ width: isGray ? "100%" : `${percentage}%` }}
         />
       </View>
 
+      {/* Min and Max */}
       <View className="flex-row justify-between mt-2">
         <Text
           className={`text-sm ${isGray ? "text-gray-400" : "text-gray-500"}`}
