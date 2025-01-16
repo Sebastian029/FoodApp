@@ -5,7 +5,7 @@ from api.models import Recipe, Ingredient, RecipeIngredients, DislikedIngredient
 from django.contrib.auth import get_user_model
 import csv
 from django.db import transaction
-from random import sample
+
 
 
 
@@ -125,11 +125,11 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
 
     # Limit the number of selected meals to a maximum of 6
     model += lpSum(meal_vars) <= 6, "Max_Meals"
+    
     model += lpSum(
-        1 * df.loc[i, 'total_calories'] * meal_vars[i]  # Calories are most important
-        + 2 * df.loc[i, 'protein'] * meal_vars[i]        # Secondary priority: Protein
-        + 1 * df.loc[i, 'fiber'] * meal_vars[i]          # Tertiary priority: Fiber
-        - 0.5 * df.loc[i, 'sugars'] * meal_vars[i]       # Penalize high sugar (negative weight)
+        2 * df.loc[i, 'total_calories'] * meal_vars[i]  
+        + 1 * df.loc[i, 'protein'] * meal_vars[i]              
+        - 0.5 * df.loc[i, 'sugars'] * meal_vars[i]       
         for i in df.index
     ), "Weighted_Nutrient_Optimization"
     

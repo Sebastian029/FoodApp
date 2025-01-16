@@ -23,13 +23,13 @@ class JWTTestCase(APITestCase):
         self.user = User.objects.create_user(**self.user_data)
         
         # Set the URL for token endpoint
-        self.url = '/api/token/'  # Adjust this if your token endpoint is different
+        self.url = '/api/login/'  # Adjust this if your token endpoint is different
         
     def test_jwt_token_obtain_pair(self):
         """
         Test obtaining JWT access and refresh tokens using valid credentials.
         """
-        response = self.client.post('/api/token/', self.user_data, format='json')
+        response = self.client.post('/api/login/', self.user_data, format='json')
         
         # Check if status code is 200 (OK)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -47,7 +47,7 @@ class JWTTestCase(APITestCase):
         Test refreshing the access token using the refresh token.
         """
         # First, obtain the token pair
-        response = self.client.post('/api/token/', self.user_data, format='json')
+        response = self.client.post('/api/login/', self.user_data, format='json')
         refresh_token = response.data['refresh']
 
         # Use the refresh token to get a new access token
@@ -623,7 +623,7 @@ class CartTestCase(APITestCase):
         self.user = User.objects.create_user(**self.user_data)
 
         # Obtain JWT token pair
-        response = self.client.post('/api/token/', self.user_data, format='json')
+        response = self.client.post('/api/login/', self.user_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # Ensure the tokens are issued
         self.access_token = response.data['access']
 
@@ -832,7 +832,7 @@ class DayPlanRecipesTests(APITestCase):
         )
         
         # Obtain JWT token pair
-        response = self.client.post('/api/token/', {
+        response = self.client.post('/api/login/', {
             'email': self.user_data['email'],
             'password': self.user_data['password']
         }, format='json')

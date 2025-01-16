@@ -1,17 +1,18 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import (
-    User, Recipe, Ingredient, RecipeIngredients, 
-    DayPlan, DayPlanRecipes, RatedRecipes, UserWeight, 
-    DislikedIngredients, UserIngredients, UserNutrientPreferences,
-    Cart, CartIngredient, CartIngredient
-    
-)
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 
+from .models import (
+    User, Recipe, Ingredient, RecipeIngredients, 
+    DayPlanRecipes,  UserWeight, 
+    UserNutrientPreferences,Cart,
+    CartIngredient, CartIngredient
+)
+
 User = get_user_model()
 
+# user auth
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
@@ -21,26 +22,112 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'name', 'surname', 'password', 'confirm_password')
 
     def validate(self, attrs):
-        # Check that the password and confirm_password match
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError("Passwords must match")
         return attrs
 
     def create(self, validated_data):
-        # Remove confirm_password as it is not a field in the User model
         validated_data.pop('confirm_password')
 
-        # Create the user and set the password
         user = User(**validated_data)
-        user.set_password(validated_data['password'])  # Hash the password
+        user.set_password(validated_data['password'])  
         user.save()
+        UserNutrientPreferences.objects.create(user=user)
         return user
 
-class UserSerializer(serializers.ModelSerializer):
+
+# recipes and planner_screen
+class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = '__all__'
+        model = Ingredient
+        fields = '_all__'
         
+class AllIngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name'] 
+
+class RecipeIngredientsSerializer(serializers.ModelSerializer):
+    ingredient = IngredientSerializer()  
+    class Meta:
+        model = RecipeIngredients
+        fields = ['ingredient', 'quantity', 'unit']
+        
+class RecipeSerializer(serializers.ModelSerializer):
+    ingredients = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recipe
+        fields = ['id', 'title', 'description', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber',
+                  'iron', 'potassium', 'preparation_time', 'preparation_guide', 
+                  'meal_type', 'ingredients']
+
+    def get_ingredients(self, obj):
+        recipe_ingredients = obj.recipeingredients_set.all()
+        ingredient_data = []
+        
+        for ri in recipe_ingredients:
+            ingredient_data.append({
+                'ingredient_name': ri.ingredient.name,
+                'quantity': ri.quantity,
+                'unit': ri.unit
+            })
+        
+        return ingredient_data
+    
+class DayPlanRecipesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DayPlanRecipes
+        fields = '__all__'
+
+class NutrientSummarySerializer(serializers.Serializer):
+    total_calories = serializers.FloatField()
+    total_sugars = serializers.FloatField()
+    total_protein = serializers.FloatField()
+    total_iron = serializers.FloatField()
+    total_potassium = serializers.FloatField()
+
+# cart
+class CartIngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartIngredient
+        fields = ['id', 'ingredient', 'quantity', 'unit', 'bought']  
+
+class CartSerializer(serializers.ModelSerializer):
+    ingredients = CartIngredientSerializer(many=True)
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'ingredients']
+
+
+# user screen
+class UserWeightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserWeight
+        fields = ['weight', 'date']
+
+    def validate_date(self, value):
+        if value > timezone.now().date():
+            raise serializers.ValidationError("The date cannot be in the future.")
+        return value
+
+class DietTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNutrientPreferences
+        fields = ['diet_type']
+
+    def validate_diet_type(self, value):
+        if value not in dict(UserNutrientPreferences.DIET_CHOICES):
+            raise serializers.ValidationError("Invalid diet type.")
+        return value
+
+
+class UserWeightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserWeight
+        fields = ['id',  'weight', 'date']
+
 class UserNutrientPreferencesSerializer(serializers.ModelSerializer):
     min_calories = serializers.IntegerField(min_value=0)
     max_calories = serializers.IntegerField(min_value=0)
@@ -100,122 +187,21 @@ class DislikedIngredientsSerializer(serializers.Serializer):
     )
 
     def validate_ingredient_ids(self, value):
-        # Check if all ingredient IDs are valid
         invalid_ids = [id for id in value if not Ingredient.objects.filter(id=id).exists()]
         if invalid_ids:
             raise ValidationError(f"Invalid ingredient id(s): {', '.join(map(str, invalid_ids))}")
         return value
+
+
+
+
+
+
+
+
+
+
+        
+
+
     
-    
-    
-class IngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = '_all__'
-        
-class AllIngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = ['id', 'name']  # This is correct; use a list
-
-class RecipeIngredientsSerializer(serializers.ModelSerializer):
-    ingredient = IngredientSerializer()  # Serialize the Ingredient model
-
-    class Meta:
-        model = RecipeIngredients
-        fields = ['ingredient', 'quantity', 'unit']
-        
-class RecipeSerializer(serializers.ModelSerializer):
-    ingredients = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Recipe
-        fields = ['id', 'title', 'description', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber',
-                  'iron', 'potassium', 'preparation_time', 'preparation_guide', 
-                  'meal_type', 'ingredients']
-
-    def get_ingredients(self, obj):
-        recipe_ingredients = obj.recipeingredients_set.all()
-        ingredient_data = []
-        
-        for ri in recipe_ingredients:
-            ingredient_data.append({
-                'ingredient_name': ri.ingredient.name,
-                'quantity': ri.quantity,
-                'unit': ri.unit
-            })
-        
-        return ingredient_data
-
-class RecipeSerializerShort(serializers.ModelSerializer):
-    class Meta:
-        model = Recipe
-        fields = ['id', 'title', 'description',]
-
-class CartIngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CartIngredient
-        fields = ['id', 'ingredient', 'quantity', 'unit', 'bought']  
-
-class CartSerializer(serializers.ModelSerializer):
-    ingredients = CartIngredientSerializer(many=True)
-
-    class Meta:
-        model = Cart
-        fields = ['id', 'user', 'ingredients']
-
-class UserWeightSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserWeight
-        fields = ['weight', 'date']
-
-    def validate_date(self, value):
-        # Ensure the date is not in the future
-        if value > timezone.now().date():
-            raise serializers.ValidationError("The date cannot be in the future.")
-        return value
-
-
-class DayPlanSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DayPlan
-        fields = '__all__'
-
-class DayPlanRecipesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DayPlanRecipes
-        fields = '__all__'
-
-class RatedRecipesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RatedRecipes
-        fields = '__all__'
-
-
-class UserIngredientsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserIngredients
-        fields = '__all__'
-
-class UserWeightSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserWeight
-        fields = ['id',  'weight', 'date']
-        
-
-class DietTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserNutrientPreferences
-        fields = ['diet_type']
-
-    def validate_diet_type(self, value):
-        if value not in dict(UserNutrientPreferences.DIET_CHOICES):
-            raise serializers.ValidationError("Invalid diet type.")
-        return value
-    
-class NutrientSummarySerializer(serializers.Serializer):
-    total_calories = serializers.FloatField()
-    total_sugars = serializers.FloatField()
-    total_protein = serializers.FloatField()
-    total_iron = serializers.FloatField()
-    total_potassium = serializers.FloatField()

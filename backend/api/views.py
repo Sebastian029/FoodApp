@@ -1,33 +1,35 @@
-# api/views.py
 from rest_framework import generics
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from datetime import timedelta, datetime
 from django.utils.timezone import now
-from django.db.models import Case, When, Value, IntegerField, Sum
+from django.db.models import Case, When, Value, IntegerField, Sum, F
+from decimal import Decimal
+from django.db.models.functions import Cast
+from django.db.models.fields import IntegerField
+from datetime import timedelta, datetime
 
-
-from .serializers import RegisterSerializer
-from .models import (User, Recipe, Ingredient, RecipeIngredients,
-                     DayPlan, DayPlanRecipes, RatedRecipes, UserWeight,
-                     DislikedIngredients, UserIngredients, UserNutrientPreferences,
-                     Cart, Ingredient, CartIngredient, DayPlanItem
+from .models import (Recipe, Ingredient,
+                     DayPlan, DayPlanRecipes,
+                     UserWeight,DislikedIngredients,
+                     UserNutrientPreferences,Cart,
+                     Ingredient, CartIngredient,
+                     DayPlanItem
 )
+
 from .serializers import (
-    UserSerializer, RecipeSerializer, IngredientSerializer, 
-    RecipeIngredientsSerializer, DayPlanSerializer, DayPlanRecipesSerializer, 
-    RatedRecipesSerializer, UserWeightSerializer, DislikedIngredientsSerializer, 
-    UserIngredientsSerializer, UserNutrientPreferencesSerializer,
-    CartSerializer, IngredientSerializer, AllIngredientSerializer, DietTypeSerializer, RecipeSerializerShort
+    RecipeSerializer, UserWeightSerializer,
+    DislikedIngredientsSerializer, UserNutrientPreferencesSerializer,
+    DietTypeSerializer,RegisterSerializer,
+    AllIngredientSerializer
 )
 from .utils import  upload_recipes_from_csv, plan_meals_for_week
 
-
+# user auth
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -76,18 +78,10 @@ class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         return Response({"message": "You have access to this view."})
-
-class UserListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAdminUser]
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAdminUser]
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
     
     
+    
+# user preferences  
 class UserNutrientPreferencesView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -111,13 +105,11 @@ class UserNutrientPreferencesView(APIView):
         except UserNutrientPreferences.DoesNotExist:
             return Response({"detail": "Preferences not set."}, status=status.HTTP_404_NOT_FOUND)
 
-# Ingredient Views
+
 class IngredientListCreateView(generics.ListCreateAPIView):
     queryset = Ingredient.objects.all()
     serializer_class = AllIngredientSerializer
   
-    
-    
 class UserDislikedIngredientsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -147,15 +139,10 @@ class UserDislikedIngredientsView(APIView):
             return Response({"message": "Disliked ingredients saved successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Recipe Views
-class RecipeListCreateView(generics.ListCreateAPIView):
-    queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
-
+# recipes
 class RecipeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-
 
 class RecipeListView(APIView):
     def get(self, request):
@@ -181,7 +168,8 @@ class RecipeTypeView(APIView):
         # Return the response
         return Response(serializer.data)
     
-    
+
+# user_screen 
 class UpdateWeightView(APIView):
     permission_classes = [IsAuthenticated]  # Ensure this line is present
     def post(self, request):
@@ -248,6 +236,23 @@ class CanUpdateWeightView(APIView):
         can_update = not weekly_entry_exists
         return Response({"can_update": can_update}, status=status.HTTP_200_OK)
     
+    
+class DietTypeView(generics.RetrieveUpdateAPIView):
+    serializer_class = DietTypeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return UserNutrientPreferences.objects.get_or_create(user=self.request.user)[0]
+    
+class DietChoicesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        diet_choices = dict(UserNutrientPreferences.DIET_CHOICES)
+        return Response(diet_choices)
+    
+    
+# cart
 class CartAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -416,104 +421,10 @@ class CartAPIView(APIView):
             CartIngredient.objects.filter(cart=cart).delete()  # Remove all CartIngredient entries
             return Response({"message": "All ingredients removed from cart."}, status=status.HTTP_200_OK)
 
-
-
-# RecipeIngredients Views
-class RecipeIngredientsListCreateView(generics.ListCreateAPIView):
-    queryset = RecipeIngredients.objects.all()
-    serializer_class = RecipeIngredientsSerializer
-
-class RecipeIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = RecipeIngredients.objects.all()
-    serializer_class = RecipeIngredientsSerializer
-
-# DayPlan Views
-class DayPlanListCreateView(generics.ListCreateAPIView):
-    queryset = DayPlan.objects.all()
-    serializer_class = DayPlanSerializer
-
-class DayPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = DayPlan.objects.all()
-    serializer_class = DayPlanSerializer
-
-# DayPlanRecipes Views
-class DayPlanRecipesListCreateView(generics.ListCreateAPIView):
-    queryset = DayPlanRecipes.objects.all()
-    serializer_class = DayPlanRecipesSerializer
-
-class DayPlanRecipesDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = DayPlanRecipes.objects.all()
-    serializer_class = DayPlanRecipesSerializer
-
-# RatedRecipes Views
-class RatedRecipesListCreateView(generics.ListCreateAPIView):
-    queryset = RatedRecipes.objects.all()
-    serializer_class = RatedRecipesSerializer
-
-class RatedRecipesDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = RatedRecipes.objects.all()
-    serializer_class = RatedRecipesSerializer
-
-# UserWeight Views
-class UserWeightListCreateView(generics.ListCreateAPIView):
-    queryset = UserWeight.objects.all()
-    serializer_class = UserWeightSerializer
-
-class UserWeightDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = UserWeight.objects.all()
-    serializer_class = UserWeightSerializer
-
-
-
-# UserIngredients Views
-class UserIngredientsListCreateView(generics.ListCreateAPIView):
-    queryset = UserIngredients.objects.all()
-    serializer_class = UserIngredientsSerializer
-
-class UserIngredientsDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = UserIngredients.objects.all()
-    serializer_class = UserIngredientsSerializer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@api_view(['GET'])
-def upload_recipes_csv(request):
-    # Path to your CSV file (ensure it's correct)
-    file_path = 'updated_data.csv'  # Directly reference the CSV in the root directory
-    # Call the utility function to upload recipes
-    success, message = upload_recipes_from_csv(file_path)
-
-    if success:
-        return Response({'message': message}, status=status.HTTP_201_CREATED)
-    else:
-        return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+# planner_screen
 class WeeklyMealPlanView(APIView):
-    """
-    Handle meal planning and retrieval of weekly planned recipes for the authenticated user.
-    """
-
     def post(self, request):
-        """
-        Create or update a weekly meal plan for the user.
-        """
-        
-        user = request.user  # Get the logged-in user
+        user = request.user  
         plan_meals_for_week(user)
         today = datetime.today().date()
 
@@ -635,38 +546,118 @@ class WeeklyMealPlanView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
-class ResetMealPlansView(APIView):
-    """
-    Deletes all recipes and day plans from the database.
-    """
+class DayPlanItemView(APIView):
+    def post(self, request):
+        user = request.user
+        date = request.data.get('date')
+        items = request.data.get('items', [])
 
-    def delete(self, request):
-        # Delete all related data
-        DayPlanRecipes.objects.all().delete()
-        DayPlan.objects.all().delete()
-    
+        if not date or not items:
+            return Response({"detail": "Date and items are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "All meal plans deleted successfully."}, status=status.HTTP_200_OK)
-    
-    
-    
-class DietTypeView(generics.RetrieveUpdateAPIView):
-    serializer_class = DietTypeSerializer
-    permission_classes = [IsAuthenticated]
+        # Convert date from string to date object
+        try:
+            plan_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"detail": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_object(self):
-        # Ensure each user can only access their preferences
-        return UserNutrientPreferences.objects.get_or_create(user=self.request.user)[0]
-    
-class DietChoicesView(APIView):
-    permission_classes = [IsAuthenticated]
+        # Iterate over items and add them to the day plan
+        for item in items:
+            item_name = item.get('item_name')
+            total_calories = item.get('total_calories', 0)
+
+            if not item_name:
+                return Response(
+                    {"detail": "Each item must have 'item_name'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Create the DayPlanItem entry with the specified date
+            DayPlanItem.objects.create(
+                user=user,
+                date=plan_date,  # Use the date from the request
+                item_name=item_name,
+                total_calories=total_calories,
+                total_protein=item.get('total_protein', 0),
+                total_fats=item.get('total_fats', 0),
+                total_carbs=item.get('total_carbs', 0),
+                total_sugars=item.get('total_sugars', 0),
+                total_iron=item.get('total_iron', 0),
+                total_potassium=item.get('total_potassium', 0),
+            )
+
+        return Response({"detail": "Items added successfully."}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        diet_choices = dict(UserNutrientPreferences.DIET_CHOICES)
-        return Response(diet_choices)
+        # Query items only for the authenticated user
+        items = DayPlanItem.objects.filter(user=request.user).order_by('date')
+
+        # Group items by date
+        items_by_date = {}
+        for item in items:
+            date_str = item.date.strftime('%Y-%m-%d')
+            if date_str not in items_by_date:
+                items_by_date[date_str] = []
+
+            items_by_date[date_str].append({
+                'id': item.id,
+                'item_name': item.item_name,
+                'total_calories': item.total_calories,
+                'total_protein': item.total_protein,
+                'total_fats': item.total_fats,
+                'total_carbs': item.total_carbs,
+                'total_sugars': item.total_sugars,
+                'total_iron': item.total_iron,
+                'total_potassium': item.total_potassium,
+                'quantity': item.quantity,
+            })
+
+        return Response({"items_by_date": items_by_date}, status=status.HTTP_200_OK)
+
+    def patch(self, request, item_id):
+        """
+        Update a manual item's details based on its ID.
+        """
+        try:
+            item = DayPlanItem.objects.get(id=item_id, user=request.user)
+        except DayPlanItem.DoesNotExist:
+            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        item.item_name = data.get('item_name', item.item_name)
+        item.total_calories = data.get('total_calories', item.total_calories)
+        item.total_protein = data.get('total_protein', item.total_protein)
+        item.total_fats = data.get('total_fats', item.total_fats)
+        item.total_carbs = data.get('total_carbs', item.total_carbs)
+        item.total_sugars = data.get('total_sugars', item.total_sugars)
+        item.total_iron = data.get('total_iron', item.total_iron)
+        item.total_potassium = data.get('total_potassium', item.total_potassium)
+        item.quantity = data.get('quantity', item.quantity)
+        item.date = datetime.strptime(data.get('date', item.date.strftime('%Y-%m-%d')), "%Y-%m-%d").date()
+        item.save()
+
+        return Response({"detail": "Item updated successfully."}, status=status.HTTP_200_OK)
+
+    def delete(self, request, item_id):
+        try:
+            # Only allow deleting items owned by the authenticated user
+            item = DayPlanItem.objects.get(id=item_id, user=request.user)
+            item.delete()
+            return Response({"detail": "Item deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except DayPlanItem.DoesNotExist:
+            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class ResetMealPlansView(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def delete(self, request):
+        DayPlanRecipes.objects.filter(day_plan__user=request.user).delete()
+        DayPlan.objects.filter(user=request.user).delete()
+
+        return Response({"message": "Your meal plans have been deleted successfully."}, status=status.HTTP_200_OK)
     
+
 class NutrientSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -732,15 +723,10 @@ class NutrientSummaryView(APIView):
 
         return Response({"comparisons": comparisons})
 
-from decimal import Decimal
-from django.db.models.functions import Cast
-from django.db.models import F, Sum
-from decimal import Decimal
-from django.db.models.fields import IntegerField
-from django.db.models.functions import Cast
+
+
 class WeeklyNutritionView(APIView):
     def get_date_range(self, request):
-        """Get date range from params or default to last 5 weeks"""
         try:
             if request.query_params.get('start_date') and request.query_params.get('end_date'):
                 start_date = datetime.strptime(
@@ -923,276 +909,14 @@ class WeeklyNutritionView(APIView):
         return Response(response_data)
     
     
-    
-# class WeeklyNutritionView222(APIView):
-#     def get_date_range(self, request):
-#         """Get date range from params or default to last 5 weeks"""
-#         try:
-#             if request.query_params.get('start_date') and request.query_params.get('end_date'):
-#                 start_date = datetime.strptime(
-#                     request.query_params.get('start_date'), 
-#                     '%Y-%m-%d'
-#                 ).date()
-#                 end_date = datetime.strptime(
-#                     request.query_params.get('end_date'), 
-#                     '%Y-%m-%d'
-#                 ).date()
-#             else:
-#                 # Get current date
-#                 end_date = datetime.now().date()
-#                 # Get Monday of current week
-#                 end_date = end_date - timedelta(days=end_date.weekday())
-#                 # Get end of week (Sunday)
-#                 end_date = end_date + timedelta(days=6)
-#                 # Start date is 5 weeks ago from start of current week
-#                 start_date = end_date - timedelta(weeks=4) - timedelta(days=6)
-            
-#             return start_date, end_date
-            
-#         except (TypeError, ValueError):
-#             raise ValueError("Invalid date format. Use YYYY-MM-DD")
-#     def get_cumulative_nutrition(self, user, start_date, current_date):
-#         """Calculate cumulative nutrition from start_date to current_date"""
-#         day_plans = DayPlan.objects.filter(
-#             user=user,
-#             date__range=[start_date, current_date]
-#         )
-        
-#         nutrition_totals = DayPlanRecipes.objects.filter(
-#             day_plan__in=day_plans
-#         ).aggregate(
-#             # Cast CharFields to integers before summing
-#            calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
-#             carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
-#             fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
-#             protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
-#             fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
-#             sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
-#             iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
-#             potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
-#         )
-            
-#         # Convert None values to Decimal('0')
-#         return {
-#             key: Decimal('0') if value is None else value 
-#             for key, value in nutrition_totals.items()
-#         }
+  
+# UPDATE DATA
+@api_view(['GET'])
+def upload_recipes_csv(request):
+    file_path = 'updated_data.csv'  
+    success, message = upload_recipes_from_csv(file_path)
 
-#     def get_daily_nutrition(self, user, date):
-#         """Calculate nutrition for a specific day"""
-#         day_plan = DayPlan.objects.filter(
-#             user=user,
-#             date=date
-#         ).first()
-        
-#         if not day_plan:
-#             return {
-#                 'calories': Decimal('0'),
-#                 'carbohydrates': Decimal('0'),
-#                 'fat': Decimal('0'),
-#                 'protein': Decimal('0'),
-#                 'fiber': Decimal('0'),
-#                 'sugars': Decimal('0'),
-#                 'iron': Decimal('0'),
-#                 'potassium': Decimal('0')
-#             }
-        
-#         nutrition_totals = DayPlanRecipes.objects.filter(
-#             day_plan=day_plan
-#         ).aggregate(
-#             # Cast CharFields to integers before summing
-#            calories=Sum(Cast('recipe__total_calories', output_field=IntegerField())),
-#             carbohydrates=Sum(Cast('recipe__carbohydrates', output_field=IntegerField())),
-#             fat=Sum(Cast('recipe__fat', output_field=IntegerField())),
-#             protein=Sum(Cast('recipe__protein', output_field=IntegerField())),
-#             fiber=Sum(Cast('recipe__fiber', output_field=IntegerField())),
-#             sugars=Sum(Cast('recipe__sugars', output_field=IntegerField())),
-#             iron=Sum(Cast('recipe__iron', output_field=IntegerField())),
-#             potassium=Sum(Cast('recipe__potassium', output_field=IntegerField()))
-#         )
-          
-        
-#         # Convert None values to Decimal('0')
-#         return {
-#             key: Decimal('0') if value is None else value 
-#             for key, value in nutrition_totals.items()
-#         }
-
-#     def serialize_nutrition_values(self, nutrition_data):
-#         """Convert Decimal values to strings for JSON serialization"""
-#         return {
-#             key: str(value) if isinstance(value, Decimal) else value
-#             for key, value in nutrition_data.items()
-#         }
-
-#     def get(self, request):
-#         try:
-#             start_date, end_date = self.get_date_range(request)
-#         except ValueError as e:
-#             return Response(
-#                 {"error": str(e)},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-
-#         user = request.user
-#         response_data = []
-        
-#         # Iterate through weeks
-#         current_date = start_date
-#         while current_date <= end_date:
-#             # Get week start (Monday) and end (Sunday)
-#             week_start = current_date - timedelta(days=current_date.weekday())
-#             week_end = min(week_start + timedelta(days=6), end_date)
-            
-#             week_data = {
-#                 'week_start': week_start.strftime('%Y-%m-%d'),
-#                 'week_end': week_end.strftime('%Y-%m-%d'),
-#                 'days': []
-#             }
-            
-#             # Calculate daily cumulative totals for the week
-#             current_week_date = week_start
-#             while current_week_date <= week_end:
-#                 daily_nutrition = self.get_daily_nutrition(user, current_week_date)
-#                 cumulative_nutrition = self.get_cumulative_nutrition(
-#                     user, 
-#                     week_start, 
-#                     current_week_date
-#                 )
-                
-#                 day_data = {
-#                     'date': current_week_date.strftime('%Y-%m-%d'),
-#                     'day_of_week': current_week_date.strftime('%A'),
-#                     'daily_totals': self.serialize_nutrition_values(daily_nutrition),
-#                     'cumulative_totals': self.serialize_nutrition_values(cumulative_nutrition)
-#                 }
-#                 week_data['days'].append(day_data)
-#                 current_week_date += timedelta(days=1)
-            
-#             response_data.append(week_data)
-#             current_date = week_end + timedelta(days=1)
-        
-#         return Response(response_data)
-    
-from datetime import datetime, timedelta
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import DayPlanItem
-
-from datetime import datetime
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
-from .models import DayPlan, DayPlanItem
-
-class DayPlanItemView(APIView):
-    def post(self, request):
-        """
-        Add manual items (e.g., snacks) to the day plan for the authenticated user.
-        """
-        user = request.user
-        date = request.data.get('date')
-        items = request.data.get('items', [])
-
-        if not date or not items:
-            return Response({"detail": "Date and items are required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Convert date from string to date object
-        try:
-            plan_date = datetime.strptime(date, "%Y-%m-%d").date()
-        except ValueError:
-            return Response({"detail": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Iterate over items and add them to the day plan
-        for item in items:
-            item_name = item.get('item_name')
-            total_calories = item.get('total_calories', 0)
-
-            if not item_name:
-                return Response(
-                    {"detail": "Each item must have 'item_name'."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Create the DayPlanItem entry with the specified date
-            DayPlanItem.objects.create(
-                user=user,
-                date=plan_date,  # Use the date from the request
-                item_name=item_name,
-                total_calories=total_calories,
-                total_protein=item.get('total_protein', 0),
-                total_fats=item.get('total_fats', 0),
-                total_carbs=item.get('total_carbs', 0),
-                total_sugars=item.get('total_sugars', 0),
-                total_iron=item.get('total_iron', 0),
-                total_potassium=item.get('total_potassium', 0),
-            )
-
-        return Response({"detail": "Items added successfully."}, status=status.HTTP_201_CREATED)
-
-    def get(self, request):
-        """
-        Retrieve all manual items for the authenticated user grouped by their associated date.
-        """
-        # Query items only for the authenticated user
-        items = DayPlanItem.objects.filter(user=request.user).order_by('date')
-
-        # Group items by date
-        items_by_date = {}
-        for item in items:
-            date_str = item.date.strftime('%Y-%m-%d')
-            if date_str not in items_by_date:
-                items_by_date[date_str] = []
-
-            items_by_date[date_str].append({
-                'id': item.id,
-                'item_name': item.item_name,
-                'total_calories': item.total_calories,
-                'total_protein': item.total_protein,
-                'total_fats': item.total_fats,
-                'total_carbs': item.total_carbs,
-                'total_sugars': item.total_sugars,
-                'total_iron': item.total_iron,
-                'total_potassium': item.total_potassium,
-                'quantity': item.quantity,
-            })
-
-        return Response({"items_by_date": items_by_date}, status=status.HTTP_200_OK)
-
-    def patch(self, request, item_id):
-        """
-        Update a manual item's details based on its ID.
-        """
-        try:
-            # Only allow updating items owned by the authenticated user
-            item = DayPlanItem.objects.get(id=item_id, user=request.user)
-        except DayPlanItem.DoesNotExist:
-            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        data = request.data
-        item.item_name = data.get('item_name', item.item_name)
-        item.total_calories = data.get('total_calories', item.total_calories)
-        item.total_protein = data.get('total_protein', item.total_protein)
-        item.total_fats = data.get('total_fats', item.total_fats)
-        item.total_carbs = data.get('total_carbs', item.total_carbs)
-        item.total_sugars = data.get('total_sugars', item.total_sugars)
-        item.total_iron = data.get('total_iron', item.total_iron)
-        item.total_potassium = data.get('total_potassium', item.total_potassium)
-        item.quantity = data.get('quantity', item.quantity)
-        item.date = datetime.strptime(data.get('date', item.date.strftime('%Y-%m-%d')), "%Y-%m-%d").date()
-        item.save()
-
-        return Response({"detail": "Item updated successfully."}, status=status.HTTP_200_OK)
-
-    def delete(self, request, item_id):
-        """
-        Delete a manual item based on its ID.
-        """
-        try:
-            # Only allow deleting items owned by the authenticated user
-            item = DayPlanItem.objects.get(id=item_id, user=request.user)
-            item.delete()
-            return Response({"detail": "Item deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-        except DayPlanItem.DoesNotExist:
-            return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+    if success:
+        return Response({'message': message}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

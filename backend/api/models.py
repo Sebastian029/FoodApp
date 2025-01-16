@@ -1,16 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from datetime import timedelta
 from django.utils import timezone
+from datetime import timedelta
 
+# recipes
 class Ingredient(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
     
-
-
 class Recipe(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -43,20 +42,21 @@ class RecipeIngredients(models.Model):
     def __str__(self):
         return f"{self.quantity} {self.unit} of {self.ingredient.name} in {self.recipe.title}"
 
+
+# user
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)  # This will hash the password
+        user.set_password(password)  
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -76,9 +76,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} {self.surname}"
 
+
+# cart
 class Cart(models.Model):
-    # user = models.ForeignKey(User, on_delete=models.CASCADE)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Ensures one cart per user
+    user = models.OneToOneField(User, on_delete=models.CASCADE)  
     ingredients = models.ManyToManyField(Ingredient, through='CartIngredient')
 
     def __str__(self):
@@ -94,6 +95,9 @@ class CartIngredient(models.Model):
     def __str__(self):
         return f"{self.quantity} {self.unit} of {self.ingredient.name}"
     
+
+
+# user_preferences 
 class UserNutrientPreferences(models.Model):
     DIET_CHOICES = [
         ('low_calories', 'Low Calories'),
@@ -127,48 +131,25 @@ class UserNutrientPreferences(models.Model):
     def __str__(self):
         return f"Nutrients for {self.user} ({self.get_diet_type_display()})"
 
+class DislikedIngredients(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
 
-
-
-
+# planner_screen
 class DayPlan(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'date')  # Prevent duplicate day plans for the same user and date
-
+        unique_together = ('user', 'date') 
 
 class DayPlanRecipes(models.Model):
     day_plan = models.ForeignKey(DayPlan, on_delete=models.CASCADE, related_name='recipes')
     recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('day_plan', 'recipe')  # Prevent duplicate recipes in the same day's plan
-
-class RatedRecipes(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    rating = models.IntegerField()
-
-
-class UserWeight(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    weight = models.CharField(max_length=10)
-    date = models.DateField()
-
-
-class DislikedIngredients(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-
-
-class UserIngredients(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-
+        unique_together = ('day_plan', 'recipe') 
 
 class UserRecipeUsage(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -177,8 +158,14 @@ class UserRecipeUsage(models.Model):
     
     class Meta:
         unique_together = ('user', 'recipe') 
-        
-        
+
+# user_screen
+class UserWeight(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    weight = models.CharField(max_length=10)
+    date = models.DateField()
+
+# macros calculation      
 class WeeklySummary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     week_start = models.DateField()  
@@ -196,7 +183,6 @@ class WeeklySummary(models.Model):
         unique_together = ('user', 'week_start')
 
     def save(self, *args, **kwargs):
-
         self.week_end = self.week_start + timedelta(days=6)
         super().save(*args, **kwargs)
 
@@ -219,3 +205,5 @@ class DayPlanItem(models.Model):
 
     def __str__(self):
         return f"{self.item_name} - {self.total_calories} kcal"
+    
+    
