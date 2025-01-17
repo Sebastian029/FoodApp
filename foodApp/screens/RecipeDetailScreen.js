@@ -146,7 +146,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
           },
         ],
       });
-      setAddedIngredients((prev) => new Set(prev).add(ingredientName)); // Add ingredient to the set
+      setAddedIngredients((prev) => new Set(prev).add(ingredientName)); 
       setConfirmationMessage(`${ingredientName} added to cart!`);
     } catch (error) {
       console.error("Error adding ingredient to cart:", error);
@@ -163,8 +163,8 @@ export default function RecipeDetailScreen({ navigation, route }) {
       return;
     }
 
-    // Format the date correctly if needed
-    const formattedDate = new Date(selectedDay).toISOString().split("T")[0]; // YYYY-MM-DD format
+ 
+    const formattedDate = new Date(selectedDay).toISOString().split("T")[0]; 
 
     console.log(formattedDate);
     console.log(selectedRecipe.id);
@@ -172,7 +172,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
 
     try {
       const response = await api.patch("/weekly-meal-plan/", {
-        day: formattedDate, // Using 'day' as the API expects
+        day: formattedDate, 
         current_recipe_id: selectedRecipe.id,
         new_recipe_id: newRecipeId,
       });
@@ -253,7 +253,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
             {recipe.description}
           </Text>
 
-          {/* Nutrition Facts */}
           <View className="bg-white rounded-xl p-4 mb-6">
             <Text className="text-2xl font-semibold text-[#2D3748] mb-4">
               Nutritions
@@ -281,7 +280,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
             </ScrollView>
           </View>
 
-          {/* Ingredients */}
           <View className="bg-white rounded-xl p-4 mb-0">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-2xl font-semibold text-[#2D3748]">
@@ -306,10 +304,10 @@ export default function RecipeDetailScreen({ navigation, route }) {
               className="flex-row items-center p-2 rounded-full"
               style={{
                 width: "50%",
-                backgroundColor: clicked ? "#d3d3d3" : "#F5A623", // Change to gray when clicked
+                backgroundColor: clicked ? "#d3d3d3" : "#F5A623", 
               }}
               onPress={addAllIngredientsToCart}
-              disabled={clicked} // Disable the button when clicked
+              disabled={clicked} 
             >
               <Plus stroke="#fff" size={16} />
               <Text className="text-white text-center font-semibold ml-2 text-sm">
@@ -318,7 +316,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          {/* Preparation */}
           <View className="bg-white rounded-xl p-4 mb-6">
             <Text className="text-2xl font-semibold text-[#2D3748] mb-4">
               Preparation ({formatTime(recipe.preparation_time)})
@@ -341,7 +338,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
             )}
           </View>
 
-          {/* Change Recipe Button */}
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
             className={`p-3 rounded-full mt-6 ${
@@ -356,18 +352,15 @@ export default function RecipeDetailScreen({ navigation, route }) {
         </View>
       </ScrollView>
 
-      {/* Modal for selecting day and recipe */}
       <Modal
         visible={modalVisible}
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
         <View className="flex-1 justify-center items-center bg-white p-6 rounded-lg shadow-lg pt-12">
-          {/* Added pt-12 to move content lower */}
           <Text className="text-2xl font-semibold text-[#2D3748]">
             Select a Day and Recipe
           </Text>
-          {/* Vertical Scroll for Modal Content */}
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             className="w-full"
@@ -377,7 +370,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
                 Choose Day:
               </Text>
 
-              {/* Horizontal Scroll for Dates */}
               <ScrollView
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
@@ -451,9 +443,7 @@ export default function RecipeDetailScreen({ navigation, route }) {
               )}
             </View>
 
-            {/* Buttons Section */}
             <View className="flex-row justify-between mt-8">
-              {/* Save Button */}
               <TouchableOpacity
                 onPress={handleSaveRecipeChange}
                 className="w-1/2 bg-[#F5A623] rounded-lg py-3 px-6 items-center justify-center"
@@ -461,7 +451,6 @@ export default function RecipeDetailScreen({ navigation, route }) {
                 <Text className="text-white font-semibold text-lg">Save</Text>
               </TouchableOpacity>
 
-              {/* Cancel Button */}
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 className="w-1/2 bg-white border border-[#CBD5E0] rounded-lg py-3 px-6 items-center justify-center"

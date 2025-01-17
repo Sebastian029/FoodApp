@@ -32,7 +32,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
-// Weekly Plan Components
 const NutrientItem = ({ label, data, unit }) => {
   const range = data.max_7_days - data.min_7_days;
   const percentage = Math.min(
@@ -43,7 +42,6 @@ const NutrientItem = ({ label, data, unit }) => {
 
   return (
     <View className="mb-6">
-      {/* Label and Total */}
       <View className="flex-row justify-between mb-2">
         <Text
           className={`text-base font-medium ${
@@ -59,7 +57,6 @@ const NutrientItem = ({ label, data, unit }) => {
         </Text>
       </View>
 
-      {/* Progress Bar */}
       <View className="h-3 bg-gray-100 rounded-full overflow-hidden">
         <View
           className={`h-full ${isGray ? "bg-gray-300" : "bg-[#F5A623]"}`}
@@ -67,7 +64,6 @@ const NutrientItem = ({ label, data, unit }) => {
         />
       </View>
 
-      {/* Min and Max */}
       <View className="flex-row justify-between mt-2">
         <Text
           className={`text-sm ${isGray ? "text-gray-400" : "text-gray-500"}`}
@@ -103,7 +99,6 @@ const MealItem = ({ recipe, onPress }) => (
   </TouchableOpacity>
 );
 
-// Daily Plan Components
 const NutrientRow = ({ label, value, unit }) => (
   <View className="flex-row justify-between py-1">
     <Text className="text-gray-600">{label}</Text>
@@ -140,7 +135,6 @@ const AddItemModal = ({ visible, onClose, onSubmit }) => {
       total_potassium: parseFloat(potassium) || 0,
     });
 
-    // Reset form
     setItemName("");
     setCalories("");
     setProtein("");
@@ -323,7 +317,6 @@ const EditQuantityModal = ({ visible, onClose, onSubmit, currentQuantity }) => {
 };
 
 export default function PlannerScreen({ navigation }) {
-  // Weekly Plan State
   const [weeklyPlan, setWeeklyPlan] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -333,20 +326,18 @@ export default function PlannerScreen({ navigation }) {
     useState(false);
   const [summaryAnimation] = useState(new Animated.Value(0));
 
-  // Daily Plan State
   const [dailyItems, setDailyItems] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [activeTab, setActiveTab] = useState("weekly"); // 'weekly' or 'daily'
+  const [activeTab, setActiveTab] = useState("weekly"); 
   const today = format(new Date(), "yyyy-MM-dd");
   const todayISO = new Date().toISOString().split("T")[0];
 
-  // Fetch Data
   const fetchWeeklyPlan = async () => {
     try {
       setLoading(true);
-      setWeeklyPlan([]); // Reset state before fetching
+      setWeeklyPlan([]); 
       setSelectedDate(null);
       const response = await api.post("/weekly-meal-plan/");
       setWeeklyPlan(response.data.weekly_plan);
@@ -388,7 +379,6 @@ export default function PlannerScreen({ navigation }) {
     }, [])
   );
 
-  // Weekly Plan Functions
   const toggleNutrientSummary = () => {
     const toValue = isNutrientSummaryExpanded ? 0 : 1;
     setIsNutrientSummaryExpanded(!isNutrientSummaryExpanded);
@@ -409,7 +399,6 @@ export default function PlannerScreen({ navigation }) {
     );
   };
 
-  // Daily Plan Functions
   const handleAddItem = async (itemData) => {
     try {
       await api.post("/day-plan-items/", {
@@ -469,7 +458,6 @@ export default function PlannerScreen({ navigation }) {
   const renderWeeklyPlan = () => (
     <>
       <ScrollView className="flex-1">
-        {/* Nutrient Summary Section */}
         <View className="px-4 pt-4">
           <View className={`bg-white rounded-lg shadow-sm`}>
             <TouchableOpacity
@@ -574,7 +562,6 @@ export default function PlannerScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* Meal List */}
         <View className="flex-1 px-4 pt-4">
           {MEAL_TYPES.map((type) => {
             const recipes = getRecipesByType(type);
@@ -713,7 +700,6 @@ export default function PlannerScreen({ navigation }) {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1">
-        {/* Header with Tabs */}
         <View className="border-b border-gray-100">
           <View className="flex-row justify-between items-center p-4">
             <Text className="text-xl font-semibold text-[#2D3748]">
@@ -764,7 +750,6 @@ export default function PlannerScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Content */}
         {activeTab === "weekly" ? renderWeeklyPlan() : renderDailyPlan()}
       </View>
     </SafeAreaView>

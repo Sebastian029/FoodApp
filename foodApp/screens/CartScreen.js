@@ -21,9 +21,9 @@ export default function CartScreen() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [quantityModalVisible, setQuantityModalVisible] = useState(false);
   const [newQuantity, setNewQuantity] = useState("");
-  const [ingredientName, setIngredientName] = useState(""); // State for ingredient name
-  const [ingredientQuantity, setIngredientQuantity] = useState(""); // State for quantity
-  const [ingredientUnit, setIngredientUnit] = useState("pieces"); // State for unit (default to "pieces")
+  const [ingredientName, setIngredientName] = useState(""); 
+  const [ingredientQuantity, setIngredientQuantity] = useState(""); 
+  const [ingredientUnit, setIngredientUnit] = useState("pieces"); 
   const [addIngredientModalVisible, setAddIngredientModalVisible] =
     useState(false);
   const [selectedUnit, setSelectedUnit] = useState("");
@@ -117,7 +117,6 @@ export default function CartScreen() {
   };
 
   const handleAddToCart = async () => {
-    // Check if fields are filled
     if (!ingredientName || !ingredientQuantity || !ingredientUnit) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -131,15 +130,14 @@ export default function CartScreen() {
 
     try {
       setLoading(true);
-      // Sending POST request
       const response = await api.post("/cart/", {
         ingredients: [newIngredient],
       });
-      fetchCart(); // Refresh cart after adding new item
-      setIngredientName(""); // Clear input fields
+      fetchCart(); 
+      setIngredientName(""); 
       setIngredientQuantity("");
-      setIngredientUnit("pieces"); // Reset to default unit
-      setAddIngredientModalVisible(false); // Close modal
+      setIngredientUnit("pieces"); 
+      setAddIngredientModalVisible(false); 
       Alert.alert("Success", "Ingredient added to cart");
     } catch (error) {
       Alert.alert("Error", "Failed to add ingredient to cart");

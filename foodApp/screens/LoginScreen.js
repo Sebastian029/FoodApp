@@ -37,7 +37,6 @@ export default function LoginScreen({ navigation }) {
       className="flex-1 bg-white"
     >
       <View className="flex-1 p-6">
-        {/* Logo and Welcome */}
         <View className="items-center mt-20 mb-12">
           <Image
             source={require("../assets/logo.png")}
@@ -46,7 +45,6 @@ export default function LoginScreen({ navigation }) {
           <Text className="text-2xl font-bold">Welcome</Text>
         </View>
 
-        {/* Form */}
         <View className="space-y-4">
           <TextInput
             className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4"
@@ -83,7 +81,6 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Sign Up Link */}
         <View className="flex-row justify-center mt-6">
           <Text className="text-gray-600">Don't have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>

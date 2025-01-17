@@ -82,7 +82,6 @@ export default function BlockedIngredientsScreen({ navigation }) {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
       <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
         <View className="flex-row items-center">
           <TouchableOpacity
@@ -106,7 +105,6 @@ export default function BlockedIngredientsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
       <View className="p-4">
         <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
           <Search stroke="#666" size={20} />
@@ -119,7 +117,6 @@ export default function BlockedIngredientsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Ingredients List */}
       <ScrollView className="flex-1 px-4">
         {filteredIngredients.map((ingredient) => (
           <TouchableOpacity

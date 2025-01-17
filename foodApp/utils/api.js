@@ -100,7 +100,6 @@ export const authAPI = {
   },
   logout: async () => {
     try {
-      // Log to ensure the token retrieval process works as expected
       const refreshToken = await tokenManager.getRefreshToken();
       if (refreshToken) {
         const response = await api.post("/logout/", { refresh: refreshToken });

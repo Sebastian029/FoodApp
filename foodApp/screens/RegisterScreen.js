@@ -14,7 +14,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
-  const [surname, setSurname] = useState(""); // Added state for surname
+  const [surname, setSurname] = useState(""); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm_password, setConfirm_password] = useState("");
@@ -66,7 +66,7 @@ export default function RegisterScreen({ navigation }) {
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
-            style={{ marginVertical: 5 }} // Added margin
+            style={{ marginVertical: 5 }} 
           />
 
           <TextInput
@@ -74,7 +74,7 @@ export default function RegisterScreen({ navigation }) {
             placeholder="Enter your surname"
             value={surname}
             onChangeText={setSurname}
-            style={{ marginVertical: 5 }} // Added margin
+            style={{ marginVertical: 5 }} 
           />
 
           <TextInput
@@ -84,7 +84,7 @@ export default function RegisterScreen({ navigation }) {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            style={{ marginVertical: 5 }} // Added margin
+            style={{ marginVertical: 5 }} 
           />
 
           <TextInput
@@ -93,7 +93,7 @@ export default function RegisterScreen({ navigation }) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            style={{ marginVertical: 5 }} // Added margin
+            style={{ marginVertical: 5 }} 
           />
 
           <TextInput
@@ -102,7 +102,7 @@ export default function RegisterScreen({ navigation }) {
             value={confirm_password}
             onChangeText={setConfirm_password}
             secureTextEntry
-            style={{ marginVertical: 5 }} // Added margin
+            style={{ marginVertical: 5 }} 
           />
 
           <TouchableOpacity
@@ -117,7 +117,6 @@ export default function RegisterScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Sign In Link */}
         <View className="flex-row justify-center mt-6">
           <Text className="text-gray-600">Already have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>

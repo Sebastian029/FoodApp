@@ -12,8 +12,8 @@ import { Search, ChevronRight } from "react-native-feather";
 import api from "../utils/api";
 
 export default function RecipeListScreen({ navigation, route }) {
-  const [recipes, setRecipes] = useState([]); // All recipes fetched from API
-  const [filteredRecipes, setFilteredRecipes] = useState([]); // Filtered recipes based on search
+  const [recipes, setRecipes] = useState([]); 
+  const [filteredRecipes, setFilteredRecipes] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState(null);
@@ -24,7 +24,7 @@ export default function RecipeListScreen({ navigation, route }) {
         `/recipes/by-type/?meal_type=${route.params?.type || ""}`
       );
       setRecipes(response.data);
-      setFilteredRecipes(response.data); // Initially, show all recipes
+      setFilteredRecipes(response.data); 
     } catch (error) {
       console.error("Error fetching recipes:", error);
     } finally {
@@ -39,10 +39,8 @@ export default function RecipeListScreen({ navigation, route }) {
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (query.trim() === "") {
-      // Show all recipes if search query is empty
       setFilteredRecipes(recipes);
     } else {
-      // Split the query into individual ingredients and filter recipes
       const queryIngredients = query
         .toLowerCase()
         .split(" ")
@@ -67,7 +65,6 @@ export default function RecipeListScreen({ navigation, route }) {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Search Bar */}
       <View className="px-4 mt-4 mb-4">
         <View className="flex-row items-center bg-white rounded-lg shadow-sm px-4 py-2 border border-gray-300">
           <Search stroke="#666" size={20} />

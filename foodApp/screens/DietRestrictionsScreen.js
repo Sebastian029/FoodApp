@@ -146,7 +146,6 @@ export default function DietRestrictionsScreen({ navigation }) {
     try {
       setLoading(true);
 
-      // Convert selected diet type to lowercase and replace spaces with underscores
       let validDietType = selected.toLowerCase().replace(/\s+/g, "_");
 
       const response = await api.put("/diet-type/", {
@@ -263,7 +262,6 @@ export default function DietRestrictionsScreen({ navigation }) {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
       <View className="flex-row items-center p-4 border-b border-gray-100">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -286,7 +284,6 @@ export default function DietRestrictionsScreen({ navigation }) {
         {renderInput("Iron (mg)", "iron")}
         {renderInput("Potassium (mg)", "potassium")}
 
-        {/* Diet Type Section */}
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
           className="flex-row justify-between items-center p-4 bg-gray-50 rounded-lg mb-4"
@@ -295,7 +292,6 @@ export default function DietRestrictionsScreen({ navigation }) {
           <ChevronRight stroke="#666" size={20} />
         </TouchableOpacity>
 
-        {/* Blocked Ingredients Section */}
         <TouchableOpacity
           onPress={() => navigation.navigate("BlockedIngredients")}
           className="flex-row justify-between items-center p-4 bg-gray-50 rounded-lg mb-6"
@@ -304,7 +300,6 @@ export default function DietRestrictionsScreen({ navigation }) {
           <ChevronRight stroke="#666" size={20} />
         </TouchableOpacity>
 
-        {/* Reset Meal Plans Button */}
         <TouchableOpacity
           onPress={handleResetMealPlans}
           disabled={loading}
@@ -314,7 +309,6 @@ export default function DietRestrictionsScreen({ navigation }) {
           <ChevronRight stroke="#DC2626" size={20} />
         </TouchableOpacity>
 
-        {/* Save Button */}
         <TouchableOpacity
           onPress={handleSave}
           disabled={loading}
@@ -328,7 +322,6 @@ export default function DietRestrictionsScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Modal for selecting diet type */}
       <Modal
         visible={modalVisible}
         animationType="slide"

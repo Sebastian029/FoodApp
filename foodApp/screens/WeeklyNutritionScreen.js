@@ -85,9 +85,9 @@ const WeekSummary = ({ weekData, weekRange }) => {
   currentDate.setHours(0, 0, 0, 0);
   weekStart.setHours(0, 0, 0, 0);
   weekEnd.setHours(0, 0, 0, 0);
- 
+
   const isCurrentWeek = currentDate >= weekStart && currentDate <= weekEnd;
- 
+
   const targetDayData = isCurrentWeek
     ? weekData.days.find(
         (day) =>
@@ -176,7 +176,6 @@ export default function WeeklyNutritionScreen({ navigation }) {
   useEffect(() => {
     if (allWeeks.length) {
       const currentDate = new Date();
-      // Find the current week
       const currentWeekIndex = allWeeks.findIndex((week) => {
         const weekStart = new Date(week.week_start);
         const weekEnd = new Date(week.week_end);
@@ -186,7 +185,6 @@ export default function WeeklyNutritionScreen({ navigation }) {
         return currentDate >= weekStart && currentDate <= weekEnd;
       });
 
-      // If a week is found, set it as the current week
       if (currentWeekIndex !== -1) {
         setCurrentWeekIndex(currentWeekIndex);
       }

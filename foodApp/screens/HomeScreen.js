@@ -39,19 +39,16 @@ const MEAL_TYPES = [
 export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header with Date on top right */}
       <View className="relative">
         <View className="absolute top-0 right-4 mt-6">
-          {/* Increased margin-top */}
           <Text className="text-gray-600">
             {format(new Date(), "EEEE d MMMM yyyy")}
           </Text>
         </View>
       </View>
 
-      {/* Meal Type Cards */}
       <ScrollView
-        className="flex-1 px-4 pt-4 mt-12" // Added margin-top here
+        className="flex-1 px-4 pt-4 mt-12" 
         showsVerticalScrollIndicator={false}
       >
         {MEAL_TYPES.map((mealType) => (

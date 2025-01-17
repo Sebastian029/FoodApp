@@ -134,7 +134,7 @@ export default function UserPreferencesScreen({ navigation }) {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1">
         <ScrollView className="flex-1 px-4">
-          {/* Navigation Buttons */}
+
           <View className="py-4">
             <TouchableOpacity
               onPress={() => navigation.navigate("DietRestrictions")}
@@ -157,7 +157,6 @@ export default function UserPreferencesScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Weight Update Section */}
           <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
             <Text className="text-xl font-semibold text-[#2D3748] mb-4">
               Update weekly weight
@@ -192,7 +191,6 @@ export default function UserPreferencesScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Weight History Chart */}
           {weightHistory.length > 0 && (
             <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
               <Text className="text-xl font-semibold text-[#2D3748] mb-4">
@@ -223,7 +221,6 @@ export default function UserPreferencesScreen({ navigation }) {
           )}
         </ScrollView>
 
-        {/* Logout Button - Fixed at bottom */}
         <View className="px-4 pb-6 pt-2 border-t border-gray-100">
           <TouchableOpacity
             onPress={handleLogout}
