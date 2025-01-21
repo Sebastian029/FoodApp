@@ -22,22 +22,17 @@ def plan_meals_for_week(user):
     for i in range(7):
         plan_date = today + timedelta(days=i)
 
-        # Get or create a DayPlan for the specific date
         day_plan, created = DayPlan.objects.get_or_create(user=user, date=plan_date)
 
-        # Skip if the day already has enough recipes (e.g., 3 per day)
         if DayPlanRecipes.objects.filter(day_plan=day_plan).count() >= 3:
             continue
 
-        # Select meals for the day
         selected_recipes = select_meals(user, excluded_ids=used_recipe_ids)
-
-        # Add selected recipes to the DayPlan and update usage
+        
         for recipe in selected_recipes:
             if not DayPlanRecipes.objects.filter(day_plan=day_plan, recipe=recipe).exists():
                 DayPlanRecipes.objects.create(day_plan=day_plan, recipe=recipe)
 
-                # Update or create a UserRecipeUsage record
                 UserRecipeUsage.objects.update_or_create(
                     user=user,
                     recipe=recipe,
@@ -88,13 +83,8 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         }
     )
 
-    # Get list of disliked ingredients for the user
     disliked_ingredients = DislikedIngredients.objects.filter(user=user).values_list('ingredient_id', flat=True)
 
-    
-   
-
-    # Filter recipes, excluding only the remaining IDs
     recipes = Recipe.objects.exclude(
         recipeingredients__ingredient__in=disliked_ingredients
     ).exclude(
@@ -103,37 +93,29 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         'id', 'title', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber', 'iron', 'potassium', 'meal_type'
     )
 
-    # Convert recipes into a pandas DataFrame
     df = pd.DataFrame(list(recipes))
 
-    # If no recipes are available after filtering, return an empty QuerySet
     if df.empty:
         return Recipe.objects.none()
 
-    # Convert string fields to numeric for calculations
     for field in ['total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium']:
         df[field] = pd.to_numeric(df[field], errors='coerce')
 
-    # Drop rows with NaN values in key columns
     df.dropna(subset=['total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium'], inplace=True)
 
-    # Set up the optimization problem
     model = LpProblem("Meal_Selection", LpMaximize if objective == 'maximize' else LpMinimize)
 
-    # Define decision variables for each meal
     meal_vars = [LpVariable(f"meal_{i}", cat='Binary') for i in df.index]
 
-    # Limit the number of selected meals to a maximum of 6
     model += lpSum(meal_vars) <= 6, "Max_Meals"
     
     model += lpSum(
-        2 * df.loc[i, 'total_calories'] * meal_vars[i]  
+        1.5 * df.loc[i, 'total_calories'] * meal_vars[i]  
         + 1 * df.loc[i, 'protein'] * meal_vars[i]              
         - 0.5 * df.loc[i, 'sugars'] * meal_vars[i]       
         for i in df.index
-    ), "Weighted_Nutrient_Optimization"
+    ), "Weights"
     
-    # Objective function
     if optimize_field in df.columns:
         model += lpSum(df.loc[i, optimize_field] * meal_vars[i] for i in df.index), f"{objective.capitalize()}_{optimize_field.capitalize()}"
 
@@ -171,22 +153,17 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         model += lpSum(df.loc[i, 'fiber'] * meal_vars[i] for i in df.index) <= preferences.max_fiber, "Max_Fiber"
     
 
-    # Ensure at least one meal from each category
     for meal_type in ['lunch', 'dinner', 'snack', 'breakfast']:
         indices = df.index[df['meal_type'] == meal_type].tolist()
         if indices:
             model += lpSum(meal_vars[i] for i in indices) >= 1, f"At_Least_One_{meal_type.capitalize()}"
 
-    # Solve the model
     model.solve(PULP_CBC_CMD(msg=False))
-
-    # Gather selected meal IDs
+    
     selected_ids = [df.loc[i, 'id'] for i in df.index if meal_vars[i].varValue == 1]
-
-    # Query the actual Recipe objects for these selected IDs
+    
     selected_meals = Recipe.objects.filter(id__in=selected_ids)
 
-    # Return the selected meals
     return selected_meals
 
 

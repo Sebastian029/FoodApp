@@ -37,15 +37,17 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 # recipes and planner_screen
-class IngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = '_all__'
+
         
 class AllIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = ['id', 'name'] 
+        
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = '_all__'
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
     ingredient = IngredientSerializer()  
