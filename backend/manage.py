@@ -1,5 +1,11 @@
-#!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="DateTimeField .* received a naive datetime",
+    category=RuntimeWarning,
+)
+
 import os
 import sys
 

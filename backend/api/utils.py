@@ -109,12 +109,7 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
 
     model += lpSum(meal_vars) <= 6, "Max_Meals"
     
-    model += lpSum(
-        1.5 * df.loc[i, 'total_calories'] * meal_vars[i]  
-        + 1 * df.loc[i, 'protein'] * meal_vars[i]              
-        - 0.5 * df.loc[i, 'sugars'] * meal_vars[i]       
-        for i in df.index
-    ), "Weights"
+    
     
     if optimize_field in df.columns:
         model += lpSum(df.loc[i, optimize_field] * meal_vars[i] for i in df.index), f"{objective.capitalize()}_{optimize_field.capitalize()}"
