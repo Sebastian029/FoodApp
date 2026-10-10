@@ -111,11 +111,18 @@ export default function UserPreferencesScreen({ navigation }) {
     },
   };
 
+  // The API returns entries newest-first; the chart needs them oldest-first.
+  const chronologicalHistory = [...weightHistory].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+
   const chartData = {
-    labels: weightHistory.map((entry) => format(new Date(entry.date), "MMM d")),
+    labels: chronologicalHistory.map((entry) =>
+      format(new Date(entry.date), "MMM d")
+    ),
     datasets: [
       {
-        data: weightHistory.map((entry) => parseFloat(entry.weight)),
+        data: chronologicalHistory.map((entry) => parseFloat(entry.weight)),
         color: (opacity = 1) => `rgba(245, 166, 35, ${opacity})`,
         strokeWidth: 2,
       },

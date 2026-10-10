@@ -14,7 +14,6 @@ from .views import (
     LogoutView, ProtectedView
 )
 
-from .views import upload_recipes_csv
 
 urlpatterns = [
   # auth
@@ -60,5 +59,4 @@ urlpatterns = [
   path('weekly-nutrition/', WeeklyNutritionView.as_view(), name='weekly-nutrition'),
   
   # UPLOAD DATA
-  path('upload-recipes/', upload_recipes_csv, name='upload-recipes'),
 ]

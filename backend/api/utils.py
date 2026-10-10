@@ -1,5 +1,5 @@
 import pandas as pd
-from pulp import LpProblem, LpVariable, lpSum, LpMaximize, LpMinimize, PULP_CBC_CMD
+from pulp import LpProblem, LpVariable, lpSum, LpMaximize, LpMinimize, LpStatus, PULP_CBC_CMD
 from django.conf import settings
 from api.models import Recipe, Ingredient, RecipeIngredients, DislikedIngredients, UserNutrientPreferences
 from django.contrib.auth import get_user_model
@@ -41,7 +41,8 @@ def plan_meals_for_week(user):
 
 
 
-def select_meals(user, optimize_field='protein', objective='maximize', excluded_ids=[]):
+def select_meals(user, optimize_field='protein', objective='maximize', excluded_ids=None):
+    excluded_ids = excluded_ids or []
     user_preferences = UserNutrientPreferences.objects.get(user=user)
     diet_type = user_preferences.diet_type
 
@@ -89,7 +90,7 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         recipeingredients__ingredient__in=disliked_ingredients
     ).exclude(
         id__in=excluded_ids
-    ).values(
+    ).order_by('id').values(
         'id', 'title', 'total_calories', 'sugars', 'protein', 'fat', 'carbohydrates', 'fiber', 'iron', 'potassium', 'meal_type'
     )
 
@@ -102,6 +103,8 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
         df[field] = pd.to_numeric(df[field], errors='coerce')
 
     df.dropna(subset=['total_calories', 'sugars', 'protein','fat','carbohydrates','fiber', 'iron', 'potassium'], inplace=True)
+    # Rows may have been dropped; the solver variables below are indexed by position.
+    df.reset_index(drop=True, inplace=True)
 
     model = LpProblem("Meal_Selection", LpMaximize if objective == 'maximize' else LpMinimize)
 
@@ -154,7 +157,11 @@ def select_meals(user, optimize_field='protein', objective='maximize', excluded_
             model += lpSum(meal_vars[i] for i in indices) >= 1, f"At_Least_One_{meal_type.capitalize()}"
 
     model.solve(PULP_CBC_CMD(msg=False))
-    
+
+    # For an infeasible (or otherwise unsolved) model the variable values are meaningless.
+    if LpStatus[model.status] != 'Optimal':
+        return Recipe.objects.none()
+
     selected_ids = [df.loc[i, 'id'] for i in df.index if meal_vars[i].varValue == 1]
     
     selected_meals = Recipe.objects.filter(id__in=selected_ids)

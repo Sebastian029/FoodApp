@@ -1,5 +1,4 @@
 from rest_framework import generics
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -27,7 +26,7 @@ from .serializers import (
     DietTypeSerializer,RegisterSerializer,
     AllIngredientSerializer
 )
-from .utils import  upload_recipes_from_csv, plan_meals_for_week
+from .utils import plan_meals_for_week
 
 # user auth
 class RegisterView(APIView):
@@ -823,16 +822,3 @@ class WeeklyNutritionView(APIView):
             current_date = week_end + timedelta(days=1)
         
         return Response(response_data)
-    
-    
-  
-# UPDATE DATA
-@api_view(['GET'])
-def upload_recipes_csv(request):
-    file_path = 'updated_data.csv'  
-    success, message = upload_recipes_from_csv(file_path)
-
-    if success:
-        return Response({'message': message}, status=status.HTTP_201_CREATED)
-    else:
-        return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

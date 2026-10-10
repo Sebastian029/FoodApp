@@ -419,6 +419,29 @@ class SelectMealsTests(TestCase):
                 )
 
                 
+    def test_infeasible_limits_return_no_meals(self):
+        """Limits no combination of recipes can satisfy must not yield a bogus plan."""
+        self.user_nutrient_preferences.min_calories = 50000
+        self.user_nutrient_preferences.max_calories = 60000
+        self.user_nutrient_preferences.save()
+
+        self.assertEqual(select_meals(self.user).count(), 0)
+
+    def test_recipes_with_missing_nutrients_are_ignored(self):
+        """A recipe with a non-numeric nutrient value is dropped instead of breaking the solver."""
+        # First candidate row (disliked-ingredient recipes never reach the solver),
+        # so dropping it leaves a gap at the start of the DataFrame index.
+        broken = (Recipe.objects
+                  .exclude(recipeingredients__ingredient__in=[self.ingredients["Tomato"], self.ingredients["Chicken"]])
+                  .order_by('id').first())
+        Recipe.objects.filter(pk=broken.pk).update(protein="n/a")
+
+        selected = select_meals(self.user)
+
+        self.assertTrue(selected.exists())
+        self.assertFalse(selected.filter(pk=broken.pk).exists())
+
+
 class CartTestCase(APITestCase):
     def setUp(self):
         self.user_data = {
@@ -709,3 +732,51 @@ class DayPlanRecipesTests(APITestCase):
         response = self.client.patch("/api/weekly-meal-plan/", patch_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.data)
+
+
+class LoadRecipesCommandTests(TestCase):
+    CSV = (
+        "name;short_description;total_calories;carbohydrates;fat;fiber;sugars;protein;"
+        "iron;potassium;preparation_time;preparation_guide;meal_type;ingredients\n"
+        "Pancakes;Fluffy;300;40;10;2;8;9;1;200;15;Mix and fry.;breakfast;"
+        "Flour:2 cups, Sugar:1 cup\n"
+        "Omelette;Quick;250;3;18;0;1;17;2;180;10;Whisk and fry.;breakfast;Eggs:3 pieces\n"
+    )
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.csv_path = Path(self.tmp.name) / "recipes.csv"
+        self.csv_path.write_text(self.CSV, encoding="utf-8")
+
+    def test_loads_recipes_and_ingredients(self):
+        from django.core.management import call_command
+        from io import StringIO
+        call_command("load_recipes", str(self.csv_path), stdout=StringIO())
+        self.assertEqual(Recipe.objects.count(), 2)
+        self.assertEqual(Ingredient.objects.count(), 3)
+        pancakes = Recipe.objects.get(title="Pancakes")
+        self.assertEqual(pancakes.recipeingredients_set.count(), 2)
+
+    def test_refuses_to_load_twice_without_force(self):
+        from django.core.management import call_command, CommandError
+        from io import StringIO
+        call_command("load_recipes", str(self.csv_path), stdout=StringIO())
+        with self.assertRaises(CommandError):
+            call_command("load_recipes", str(self.csv_path), stdout=StringIO())
+        self.assertEqual(Recipe.objects.count(), 2)
+
+    def test_force_loads_again(self):
+        from django.core.management import call_command
+        from io import StringIO
+        call_command("load_recipes", str(self.csv_path), stdout=StringIO())
+        call_command("load_recipes", str(self.csv_path), "--force", stdout=StringIO())
+        self.assertEqual(Recipe.objects.count(), 4)
+
+    def test_missing_file_raises(self):
+        from django.core.management import call_command, CommandError
+        from io import StringIO
+        with self.assertRaises(CommandError):
+            call_command("load_recipes", str(self.csv_path.with_name("nope.csv")), stdout=StringIO())

@@ -166,18 +166,13 @@ export default function RecipeDetailScreen({ navigation, route }) {
  
     const formattedDate = new Date(selectedDay).toISOString().split("T")[0]; 
 
-    console.log(formattedDate);
-    console.log(selectedRecipe.id);
-    console.log(newRecipeId);
-
     try {
-      const response = await api.patch("/weekly-meal-plan/", {
+      await api.patch("/weekly-meal-plan/", {
         day: formattedDate, 
         current_recipe_id: selectedRecipe.id,
         new_recipe_id: newRecipeId,
       });
 
-      console.log("Recipe changed successfully:", response.data);
       setModalVisible(false);
     } catch (error) {
       console.error(

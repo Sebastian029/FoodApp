@@ -1,7 +1,8 @@
 import axios from "axios";
 import { tokenManager } from "./tokenManager";
 
-const BASE_URL = "http://192.168.0.177:8000/api";
+// Set EXPO_PUBLIC_API_URL in foodApp/.env (see .env.example).
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api";
 
 const api = axios.create({
   baseURL: BASE_URL,

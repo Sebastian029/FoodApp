@@ -405,7 +405,6 @@ export default function PlannerScreen({ navigation }) {
         date: todayISO,
         items: [itemData],
       });
-      console.log(todayISO);
       setShowAddModal(false);
       fetchDailyItems();
     } catch (error) {
